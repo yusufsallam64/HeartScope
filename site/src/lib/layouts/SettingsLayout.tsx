@@ -57,6 +57,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children }) => {
         </div>
         <div className="relative">
           <UserAvatar
+            isOpen={isDropdownOpen}
             session={session}
             onClick={() => setIsDropdownOpen(prev => !prev)}
           />
