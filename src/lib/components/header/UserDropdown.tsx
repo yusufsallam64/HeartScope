@@ -51,26 +51,8 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose }) => {
         <div className="absolute -inset-0.5 bg-accent-500/20 opacity-0 group-hover:opacity-100 rounded-xl blur transition duration-300" />
         
         {/* Dropdown content */}
-        <div className="relative rounded-xl bg-background-900/40 backdrop-blur-xl border border-primary-200/30 shadow-[0_0_20px_rgba(99,102,241,0.15)] overflow-hidden">
-          <div className="py-1">
-            <button
-              className="w-full px-4 py-2.5 text-left text-primary-100 hover:bg-accent-500/10 flex items-center gap-2.5 transition-all duration-200 group"
-              onClick={() => {router.push('/dashboard'); onClose();}}
-            >
-              <MessageSquare size={16} className="text-accent-400 group-hover:text-accent-300 transition-colors duration-200" />
-              <span>Back to Chat</span>
-            </button>
-            
-            <div className="h-px bg-primary-200/30 my-1" />
-
-            <button
-              className="w-full px-4 py-2.5 text-left text-primary-100 hover:bg-accent-500/10 flex items-center gap-2.5 transition-all duration-200 group"
-              onClick={() => {router.push('/settings/profile'); onClose();}}
-            >
-              <Settings size={16} className="text-accent-400 group-hover:text-accent-300 transition-colors duration-200" />
-              <span>Settings</span>
-            </button>
-            <button
+        <div className="relative rounded-xl bg-background-900/40 backdrop-blur-xl border border-primary-200/30 overflow-hidden">
+          <div className="py-1"><button
               className="w-full px-4 py-2.5 text-left text-primary-100 hover:bg-accent-500/10 flex items-center gap-2.5 transition-all duration-200 group"
               onClick={handleSignOut}
             >

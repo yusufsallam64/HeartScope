@@ -47,7 +47,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ session, onClick, size }) => {
         ]
       )}
       style={{ transform: `scale(${size ? size : 1})` }}
-      title={session?.user?.walletAddress || 'User'}
+      title={'User'}
     >
       {/* Avatar container */}
       <div className="relative h-8 w-8">
@@ -62,10 +62,11 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ session, onClick, size }) => {
           ) : renderFallbackAvatar()}
         </div>
       </div>
-
-      {/* Wallet Address */}
-      <div className="text-sm text-primary-100">
-        {truncateAddress(session?.user?.walletAddress || '')}
+      {/* User details */}
+      <div className="flex flex-col items-start justify-center">
+        <span className="text-sm font-semibold text-primary-100/80 group-hover:text-primary-100 transition-colors duration-200">
+          {session?.user?.name ?? 'User'}
+        </span>
       </div>
 
       {/* Dropdown indicator */}

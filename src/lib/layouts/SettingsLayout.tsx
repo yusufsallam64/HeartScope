@@ -45,8 +45,8 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children }) => {
               className="text-xl font-title hover:opacity-80 transition-all duration-200 flex items-center gap-3"
             >
               <Logo size={32} />
-              <span className="hidden sm:inline font-bold bg-gradient-to-r from-accent-400 via-accent-500 to-secondary-300 text-transparent bg-clip-text">
-                SolMate
+              <span className="hidden sm:inline font-bold text-accent-400">
+                HeartScope
               </span>
             </button>
           </div>

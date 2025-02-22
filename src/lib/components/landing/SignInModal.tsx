@@ -77,7 +77,7 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
             </button>
 
             <div className="flex flex-col items-center space-y-6">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-accent-400 to-accent-500 text-transparent bg-clip-text">
+              <h2 className="text-3xl font-bold text-accent-400">
                 Welcome Back
               </h2>
               <p className="text-primary-100/80 text-center">
@@ -99,7 +99,7 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             <div className="text-center text-sm text-primary-200">
-              New to SolMate?{' '}
+              New to HeartScope?{' '}
               <Link
                 href="/auth/signup"
                 className="text-accent-400 hover:text-accent-500 underline"

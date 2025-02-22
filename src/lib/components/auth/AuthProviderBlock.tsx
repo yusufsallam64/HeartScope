@@ -16,7 +16,7 @@ const OAuthLoginBlock: FC<OAuthLoginBlockProps> = ({ provider, providerName, ico
                    border-2 border-accent-400/20 hover:border-accent-400/40
                    rounded-xl transition-all duration-300 group relative overflow-hidden"
     >
-        <div className="absolute inset-0 bg-linear-to-r from-accent-400/10 to-secondary-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-accent-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
         <div className="relative flex items-center w-full">
             <div className="h-8 w-8 relative shrink-0">

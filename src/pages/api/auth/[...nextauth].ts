@@ -1,8 +1,7 @@
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import NextAuth, { AuthOptions, User } from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import { Adapter } from "next-auth/adapters";
 import GoogleProvider from "next-auth/providers/google";
-import jwt from "jsonwebtoken";
 import { clientPromise } from "@/lib/db/client";
 import { ObjectId } from "mongodb";
 import { DatabaseService } from "@/lib/db/service";
@@ -14,14 +13,6 @@ if (
 ) {
   throw new Error("Missing required environment variables");
 }
-
-export const generateToken = (userId: string): string => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: "24h" });
-};
-
-export const verifyToken = (token: string): { userId: string } => {
-  return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-};
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -35,7 +26,7 @@ export const authOptions: AuthOptions = {
     signIn: "/auth/signup",
   },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user }) {
       try {
         const existingUser = await DatabaseService.getUserByEmail(
           user.email as string
@@ -78,18 +69,13 @@ export const authOptions: AuthOptions = {
         if (!dbUser) {
           return session;
         }
-
-        const token = generateToken(dbUser._id.toString());
         
         return {
           ...session,
-          token,
           user: {
             ...session.user,
-            name: `${session.user.name || dbUser.name}|${dbUser._id.toString()}`,
             image: dbUser.imageUrl || session.user.image,
             email: dbUser.email,
-            walletAddress: (dbUser as any).walletAddress,
           }
         };
       } catch (error) {
@@ -106,11 +92,7 @@ export const authOptions: AuthOptions = {
       }
       return "/dashboard";
     },
-  },
-  session: {
-    strategy: "jwt",
-  },
-  secret: process.env.JWT_SECRET,
+  }
 };
 
 export default NextAuth(authOptions);

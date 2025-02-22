@@ -15,10 +15,10 @@ const SignUp = ({
     const { data: session } = useSession();
     
     return (
-        <div className="min-h-screen w-full relative overflow-hidden bg-linear-to-br from-primary-100 to-background-200">
+        <div className="min-h-screen w-full relative overflow-hidden bg-primary-100">
             <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-linear-to-br from-accent-400/10 to-transparent rounded-full blur-3xl transform rotate-12" />
-                <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-linear-to-tl from-secondary-500/10 to-transparent rounded-full blur-3xl transform -rotate-12" />
+                <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-accent-400/10 rounded-full blur-3xl transform rotate-12" />
+                <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-secondary-500/10 rounded-full blur-3xl transform -rotate-12" />
             </div>
 
             <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
@@ -30,8 +30,8 @@ const SignUp = ({
                             <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                         <h1 className="text-3xl font-bold">
-                            <span className="bg-linear-to-r from-accent-400 via-accent-500 to-secondary-500 text-transparent bg-clip-text">
-                                Welcome to SolMate
+                            <span className="bg-accent-400 text-transparent bg-clip-text">
+                                Welcome to HeartScope
                             </span>
                         </h1>
                     </div>

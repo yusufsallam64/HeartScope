@@ -1,156 +1,178 @@
-import { useCallback, useState, useEffect } from "react";
-import { Message, Conversation } from "@/lib/db/types";
-import toast from "react-hot-toast";
+import React, { useState } from 'react';
 import { DashboardLayout } from '@/lib/layouts';
-import { ChatInterface } from "@/lib/components/dashboard/ChatInterface";
-import { sendMessage } from "@/lib/chat/message-handler";
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Upload, Clock, User, FileText } from 'lucide-react';
 
 export default function Dashboard() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [currentConversation, setCurrentConversation] = useState<Conversation | undefined>(undefined);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [patientInfo, setPatientInfo] = useState({
+    name: '',
+    age: '',
+    symptoms: '',
+    medicalHistory: '',
+    currentMedications: '',
+  });
 
-  useEffect(() => {
-    async function loadConversations() {
-      try {
-        const response = await fetch('/api/conversations');
-        if (!response.ok) throw new Error('Failed to fetch conversations');
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-        const conversationsData: Conversation[] = await response.json();
-        setConversations(conversationsData);
-      } catch (error) {
-        console.error('Error loading conversations:', error);
-        toast.error('Failed to load conversations');
-      }
-    }
-    loadConversations();
-  }, []);
-
-  const handleConversationChange = async (conversationId: string) => {
-    try {
-      const response = await fetch(`/api/conversations/${conversationId}`);
-      if (!response.ok) throw new Error('Failed to fetch conversation');
-
-      const data = await response.json();
-      setCurrentConversation(data.conversation);
-      setMessages(data.messages);
-    } catch (error) {
-      console.error('Error fetching conversation:', error);
-      toast.error('Failed to load conversation');
-    }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setPatientInfo(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleNewChat = useCallback(() => {
-    setCurrentConversation(undefined);
-    setMessages([]);
-    setMessage("");
-  }, []);
-
-  const handleConversationUpdate = (data: any) => {
-    if (currentConversation) {
-      setConversations(prevConversations => prevConversations.map(conv =>
-        conv._id === data.conversation._id
-          ? {
-            ...conv,
-            messageCount: data.messages.length,
-            lastMessageAt: new Date()
-          }
-          : conv
-      ));
-    } else {
-      setCurrentConversation(data.conversation);
-      setConversations(prevConversations => [{
-        ...data.conversation,
-        messageCount: data.messages.length,
-        lastMessageAt: new Date()
-      }, ...prevConversations]);
-    }
+  const handleFileChange = (e) => {
+    setSelectedFiles(Array.from(e.target.files));
   };
 
-  const handleSubmit = useCallback(async (e: React.FormEvent, messageOverride?: string, isGuruMode: boolean = false) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    const messageToSend = messageOverride || message;
-    console.log('Handling submit with message:', messageToSend, 'isGuruMode:', isGuruMode);
+    setIsSubmitting(true);
+
+    // Simulate API call
+    const formData = new FormData();
     
-    if (!messageToSend.trim() || isLoading) return;
-  
-    setIsLoading(true);
-    setError("");
-  
-    const messageContent = messageToSend.trim();
-    setMessage("");
-  
-    const userMessage: Message = {
-      _id: `temp-${Date.now()}` as any,
-      role: 'user',
-      content: messageContent,
-      conversationId: currentConversation?._id || ('' as any),
-      userId: '' as any,
-      createdAt: new Date(),
-    };
-  
-    // Add user message to the messages array
-    setMessages(prevMessages => [...prevMessages, userMessage]);
-  
-    try {
-      // Get the current messages to include in the API call
-      const currentMessages = [...(messages || [])];
-      
-      const response = await sendMessage(
-        messageContent,
-        currentMessages,
-      );
-  
-      if (response.error) {
-        throw new Error(response.error);
-      }
-  
-      const assistantMessage = response.messages[response.messages.length - 1];
-      setMessages(prevMessages => {
-        const withoutTemp = prevMessages.filter(msg => msg._id !== userMessage._id);
-        return [...withoutTemp, 
-          { ...userMessage, _id: response.messages[response.messages.length - 2]._id },
-          assistantMessage
-        ];
-      });
-      
-      if (response.conversation) {
-        handleConversationUpdate(response);
-      }
-  
-    } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
-      toast.error('Failed to send message');
-      // Remove only the failed message
-      setMessages(prevMessages => prevMessages.filter(msg => msg._id !== userMessage._id));
-      setMessage(messageContent);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [message, messages, currentConversation, isLoading, handleConversationUpdate]);
-  
+    // Add patient info to formData
+    Object.entries(patientInfo).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+
+    // Add files to formData
+    selectedFiles.forEach((file, index) => {
+      formData.append(`image${index}`, file);
+    });
+
+    // Simulate API endpoint structure
+    const apiEndpoint = '/api/analysis/new';
+    
+    console.log('Simulating API POST to:', apiEndpoint);
+    console.log('Data being sent:', {
+      patientInfo,
+      fileCount: selectedFiles.length,
+      fileNames: selectedFiles.map(f => f.name)
+    });
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setIsSubmitting(false);
+    console.log('Analysis saved successfully (simulation)');
+  };
+
   return (
-    <DashboardLayout
-      conversations={conversations}
-      onConversationChange={handleConversationChange}
-      currentConversation={currentConversation}
-      onNewChat={handleNewChat}
-    >
-      <div className="h-[calc(100vh-4rem)] p-6">
-        <ChatInterface
-          currentConversation={currentConversation}
-          messages={messages}
-          message={message}
-          setMessage={setMessage}
-          error={error}
-          isLoading={isLoading}
-          handleSubmit={handleSubmit}
-        />
+    <DashboardLayout>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold text-primary-900">New Analysis</h1>
+          <Clock className="text-primary-500 w-6 h-6" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Card className="bg-white shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Patient Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Patient Name</label>
+                  <Input
+                    name="name"
+                    value={patientInfo.name}
+                    onChange={handleInputChange}
+                    className="w-full"
+                    placeholder="Enter patient name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Age</label>
+                  <Input
+                    name="age"
+                    type="number"
+                    value={patientInfo.age}
+                    onChange={handleInputChange}
+                    className="w-full"
+                    placeholder="Enter age"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Current Symptoms</label>
+                <Textarea
+                  name="symptoms"
+                  value={patientInfo.symptoms}
+                  onChange={handleInputChange}
+                  className="w-full h-24"
+                  placeholder="Describe current symptoms including chest pain, dizziness, shortness of breath, etc."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Medical History</label>
+                <Textarea
+                  name="medicalHistory"
+                  value={patientInfo.medicalHistory}
+                  onChange={handleInputChange}
+                  className="w-full h-24"
+                  placeholder="Enter relevant medical history"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Current Medications</label>
+                <Textarea
+                  name="currentMedications"
+                  value={patientInfo.currentMedications}
+                  onChange={handleInputChange}
+                  className="w-full"
+                  placeholder="List current medications"
+                />
+              </div>
+
+              <div className="mt-4">
+                <div className="bg-background-100 border border-background-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <Upload className="h-5 w-5 text-primary-500" />
+                    <label className="text-sm font-medium text-primary-900">
+                      Upload Medical Images
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                    </label>
+                    {selectedFiles.length > 0 && (
+                      <span className="text-sm text-primary-600">
+                        {selectedFiles.length} file(s) selected
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-primary-500 hover:bg-primary-600 text-white px-6"
+            >
+              {isSubmitting ? 'Saving...' : 'Save Analysis'}
+            </Button>
+          </div>
+        </form>
       </div>
     </DashboardLayout>
   );

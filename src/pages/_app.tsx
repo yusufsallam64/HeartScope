@@ -21,7 +21,7 @@ const righteous = Righteous({
 
 export default function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   useEffect(() => {
-    document.title = 'Solana Bot';
+    document.title = 'HeartScope';
   }, []);
 
   return (

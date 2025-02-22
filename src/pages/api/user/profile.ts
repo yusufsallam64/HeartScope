@@ -1,7 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { DatabaseService } from '@/lib/db/service';
 import { ObjectId } from 'mongodb';
-import { authenticateRequest } from '../conversations';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]';
+
+export async function authenticateRequest(req: NextApiRequest, res: NextApiResponse): Promise<string | null> {
+    const session = await getServerSession(req, res, authOptions);
+    if (session) {
+      const userId = session?.user?.id;
+      if (userId) return userId;
+    }
+  
+    return null;
+}
 
 export default async function handler(
     req: NextApiRequest,
