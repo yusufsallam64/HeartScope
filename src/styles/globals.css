@@ -1,0 +1,94 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: var(--font-urbanist), sans-serif;
+  --font-title: var(--font-righteous), serif;
+
+  --color-text-50: hsl(270, 15%, 95%);
+  --color-text-100: hsl(266, 14%, 90%);
+  --color-text-200: hsl(266, 14%, 80%);
+  --color-text-300: hsl(266, 14%, 70%);
+  --color-text-400: hsl(266, 14%, 60%);
+  --color-text-500: hsl(266, 14%, 50%);
+  --color-text-600: hsl(266, 14%, 40%);
+  --color-text-700: hsl(266, 14%, 30%);
+  --color-text-800: hsl(266, 14%, 20%);
+  --color-text-900: hsl(266, 14%, 10%);
+  --color-text-950: hsl(270, 15%, 5%);
+  
+  --color-background-50: hsl(260, 12%, 95%);
+  --color-background-100: hsl(257, 14%, 90%);
+  --color-background-200: hsl(261, 14%, 80%);
+  --color-background-300: hsl(259, 12%, 70%);
+  --color-background-400: hsl(261, 13%, 60%);
+  --color-background-500: hsl(260, 13%, 50%);
+  --color-background-600: hsl(261, 13%, 40%);
+  --color-background-700: hsl(259, 12%, 30%);
+  --color-background-800: hsl(261, 14%, 20%);
+  --color-background-900: hsl(257, 14%, 10%);
+  --color-background-950: hsl(260, 12%, 5%);
+  
+  --color-primary-50: hsl(268, 100%, 95%);
+  --color-primary-100: hsl(267, 100%, 90%);
+  --color-primary-200: hsl(267, 100%, 80%);
+  --color-primary-300: hsl(267, 100%, 70%);
+  --color-primary-400: hsl(267, 100%, 60%);
+  --color-primary-500: hsl(267, 100%, 50%);
+  --color-primary-600: hsl(267, 100%, 40%);
+  --color-primary-700: hsl(267, 100%, 30%);
+  --color-primary-800: hsl(267, 100%, 20%);
+  --color-primary-900: hsl(267, 100%, 10%);
+  --color-primary-950: hsl(265, 100%, 5%);
+  
+  --color-secondary-50: hsl(285, 15%, 95%);
+  --color-secondary-100: hsl(291, 14%, 90%);
+  --color-secondary-200: hsl(287, 14%, 80%);
+  --color-secondary-300: hsl(289, 14%, 70%);
+  --color-secondary-400: hsl(289, 14%, 60%);
+  --color-secondary-500: hsl(288, 14%, 50%);
+  --color-secondary-600: hsl(289, 14%, 40%);
+  --color-secondary-700: hsl(289, 14%, 30%);
+  --color-secondary-800: hsl(287, 14%, 20%);
+  --color-secondary-900: hsl(291, 14%, 10%);
+  --color-secondary-950: hsl(285, 15%, 5%);
+  
+  --color-accent-50: hsl(154, 92%, 95%);
+  --color-accent-100: hsl(155, 88%, 90%);
+  --color-accent-200: hsl(155, 88%, 80%);
+  --color-accent-300: hsl(155, 90%, 70%);
+  --color-accent-400: hsl(155, 89%, 60%);
+  --color-accent-500: hsl(155, 89%, 50%);
+  --color-accent-600: hsl(155, 89%, 40%);
+  --color-accent-700: hsl(155, 90%, 30%);
+  --color-accent-800: hsl(155, 88%, 20%);
+  --color-accent-900: hsl(155, 88%, 10%);
+  --color-accent-950: hsl(157, 92%, 5%);
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
+
+:root { 
+    font-family: 'Lexend', sans-serif;
+}
+html, body {
+    background-color: hsl(259, 12%, 30%);
+    ;
+}
