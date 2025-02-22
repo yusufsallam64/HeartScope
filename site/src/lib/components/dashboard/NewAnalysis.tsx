@@ -30,7 +30,11 @@ interface ImagePreview {
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 
-const NewAnalysis = () => {
+interface NewAnalysisProps {
+    onSuccess?: () => void;
+}
+
+const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
   const [patientInfo, setPatientInfo] = useState<PatientInfo>({
     name: '',
     age: '',
@@ -180,7 +184,8 @@ const NewAnalysis = () => {
   
       const data = await response.json();
       console.log('Analysis saved successfully:', data);
-      
+
+      onSuccess?.();
     } catch (error) {
       console.error('Error saving analysis:', error);
     } finally {

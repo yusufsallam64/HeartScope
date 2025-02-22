@@ -56,10 +56,6 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
       <div className="flex pt-16 min-h-screen md:flex">
-        <Sidebar
-          isOpen={isSidebarOpen}
-          setIsOpen={setIsSidebarOpen}
-        />
         <main className="flex-1 transition-all duration-300 ease-in-out overflow-x-hidden bg-background-100/50">
           {children}
         </main>
