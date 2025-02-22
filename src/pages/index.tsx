@@ -27,8 +27,8 @@ export default function Splash() {
   };
 
   return (
-    <div className="min-h-screen w-screen bg-background-950 overflow-x-hidden">
-      <header className={`fixed w-full z-30 transition-all duration-300 ${scrolled ? 'backdrop-blur-xl bg-background-950/80 border-b border-primary-200/30' : ''}`}>
+    <div className="min-h-screen w-screen bg-background-100 overflow-x-hidden">
+      <header className={`fixed w-full z-30 transition-all duration-300 ${scrolled ? 'backdrop-blur-xl bg-background-100/80 border-b border-primary-200/30' : ''}`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">

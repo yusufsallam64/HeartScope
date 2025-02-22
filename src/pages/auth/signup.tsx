@@ -4,9 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]";
 import AuthProviderBlock from "@/lib/components/auth/AuthProviderBlock";
 import Link from 'next/link';
-import { useState } from 'react';
-import { ArrowLeft, LoaderCircle } from 'lucide-react';
-import { DatabaseService } from '@/lib/db/service';
+import { ArrowLeft } from 'lucide-react';
 import clsx from "clsx";
 import router from "next/router";
 
@@ -15,10 +13,9 @@ const SignUp = ({
     error,
 }: InferGetServerSidePropsType<typeof getServerSideProps>): JSX.Element => {
     const { data: session } = useSession();
-    const [isLoading, setIsLoading] = useState(false);
-
+    
     return (
-        <div className="min-h-screen w-full relative overflow-hidden bg-linear-to-br from-primary-950 to-background-950">
+        <div className="min-h-screen w-full relative overflow-hidden bg-linear-to-br from-primary-100 to-background-200">
             <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-linear-to-br from-accent-400/10 to-transparent rounded-full blur-3xl transform rotate-12" />
                 <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-linear-to-tl from-secondary-500/10 to-transparent rounded-full blur-3xl transform -rotate-12" />

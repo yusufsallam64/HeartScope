@@ -39,7 +39,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ session, onClick, size }) => {
       onClick={onClick ?? (() => {})}
       className={clsx(
         "relative group flex items-center gap-2 px-2 py-1.5 rounded-md transition-all duration-300",
-        "bg-background-950 hover:bg-background-900",
+        "bg-background-100 hover:bg-background-900",
         "border border-primary-200/10",
         onClick && [
           'cursor-pointer',

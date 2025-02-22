@@ -20,7 +20,7 @@ const MessageInput = ({
   const [showTooltip, setShowTooltip] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
-    await onSubmit(e, undefined, isGuruMode);
+    await onSubmit(e, undefined);
 };
 
   return (

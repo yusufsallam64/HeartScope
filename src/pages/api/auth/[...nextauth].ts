@@ -50,7 +50,6 @@ export const authOptions: AuthOptions = {
             createdAt: now,
             updatedAt: now,
             lastLoginAt: now,
-            walletAddress: user.walletAddress, // TypeScript now knows about this property
           };
 
           const client = await clientPromise;
@@ -61,11 +60,6 @@ export const authOptions: AuthOptions = {
           });
         } else {
           await DatabaseService.updateUserLastLogin(existingUser._id);
-          if (account?.provider === "phantom") {
-            await DatabaseService.updateUser(existingUser._id, {
-              walletAddress: user.walletAddress,
-            } as any);
-          }
         }
         return true;
       } catch (error) {

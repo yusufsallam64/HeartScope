@@ -3,9 +3,7 @@ import { Message, Conversation } from "@/lib/db/types";
 import toast from "react-hot-toast";
 import { DashboardLayout } from '@/lib/layouts';
 import { ChatInterface } from "@/lib/components/dashboard/ChatInterface";
-import { useSession } from "next-auth/react";
 import { sendMessage } from "@/lib/chat/message-handler";
-import { useVoice } from "@/lib/components/voice/VoiceContextProvider";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,15 +12,7 @@ export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | undefined>(undefined);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [view, setView] = useState<'chat' | 'voice'>('chat');
-  const [isInitializingVoice, setIsInitializingVoice] = useState(false);
-  const { data: session } = useSession();
-  const walletAddress = session?.user.walletAddress;
 
-  const [useElevenLabs, setUseElevenLabs] = useState(false);
-  const { voiceId } = useVoice();
-
-  // Load conversations on mount
   useEffect(() => {
     async function loadConversations() {
       try {
@@ -47,10 +37,6 @@ export default function Dashboard() {
       const data = await response.json();
       setCurrentConversation(data.conversation);
       setMessages(data.messages);
-      // Only reset to chat view if we're changing conversations
-      if (currentConversation?._id !== conversationId) {
-        setView('chat');
-      }
     } catch (error) {
       console.error('Error fetching conversation:', error);
       toast.error('Failed to load conversation');
@@ -61,7 +47,6 @@ export default function Dashboard() {
     setCurrentConversation(undefined);
     setMessages([]);
     setMessage("");
-    setView('chat');
   }, []);
 
   const handleConversationUpdate = (data: any) => {
@@ -118,24 +103,17 @@ export default function Dashboard() {
       const response = await sendMessage(
         messageContent,
         currentMessages,
-        currentConversation?._id,
-        walletAddress,
-        isGuruMode  // Add this parameter
       );
   
-      // ... rest of your existing code
       if (response.error) {
         throw new Error(response.error);
       }
   
-      // Add only the new assistant message to the existing conversation
       const assistantMessage = response.messages[response.messages.length - 1];
       setMessages(prevMessages => {
-        // Remove any temporary messages
         const withoutTemp = prevMessages.filter(msg => msg._id !== userMessage._id);
-        // Add the permanent user message and the new assistant message
         return [...withoutTemp, 
-          { ...userMessage, _id: response.messages[response.messages.length - 2]._id }, // Use permanent ID
+          { ...userMessage, _id: response.messages[response.messages.length - 2]._id },
           assistantMessage
         ];
       });
@@ -154,36 +132,8 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [message, messages, currentConversation, isLoading, walletAddress, handleConversationUpdate]);
+  }, [message, messages, currentConversation, isLoading, handleConversationUpdate]);
   
-  const handleViewToggle = useCallback(async () => {
-    if (isInitializingVoice) return;
-
-    const newView = view === 'chat' ? 'voice' : 'chat';
-    console.log('Attempting to toggle view from:', view, 'to:', newView);
-
-    if (newView === 'voice') {
-      setIsInitializingVoice(true);
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(track => track.stop());
-        setView(newView);
-        setUseElevenLabs(true); // Enable ElevenLabs when switching to voice mode
-      } catch (error) {
-        console.error('Failed to initialize voice mode:', error);
-        toast.error('Could not enable voice mode. Please check microphone permissions.');
-        return;
-      } finally {
-        setIsInitializingVoice(false);
-      }
-    } else {
-      setView(newView);
-      setUseElevenLabs(false); // Disable ElevenLabs when switching to chat mode
-    }
-  }, [view, isInitializingVoice]);
-
-
-
   return (
     <DashboardLayout
       conversations={conversations}
@@ -200,10 +150,6 @@ export default function Dashboard() {
           error={error}
           isLoading={isLoading}
           handleSubmit={handleSubmit}
-          view={view}
-          onViewToggle={handleViewToggle}
-          useElevenLabs={useElevenLabs}
-          voiceId={voiceId ?? "21m00Tcm4TlvDq8ikWAM"}
         />
       </div>
     </DashboardLayout>

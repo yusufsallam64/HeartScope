@@ -1,4 +1,3 @@
-// lib/components/ProblemList.tsx
 import React from 'react';
 import { Plus, Menu, MessageSquare, Clock, CheckCircle, XCircle, HelpCircle } from 'lucide-react';
 import type { Problem } from '@/lib/db/types';

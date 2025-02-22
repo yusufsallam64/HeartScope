@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreHorizontal, Edit2, Trash2, Check, X } from 'lucide-react';
-import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import { Conversation } from '@/lib/db/types';
 import Modal from '@/lib/components/ui/Modal';
@@ -18,7 +17,6 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation, o
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);

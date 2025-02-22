@@ -1,14 +1,13 @@
-// [...handler].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { DatabaseService } from "@/lib/db/service";
 import { ObjectId } from 'mongodb';
 import { authenticateRequest } from '../conversations';
-import { AVAILABLE_TOOLS, SYSTEM_PROMPT, handleToolCalls } from '@/lib/solana/tools';
-import { performSemanticSearch, formatSearchResultsAsContext } from '@/lib/services/Search';
 
 if (!process.env.CF_API_TOKEN || !process.env.CF_ACCOUNT_ID) {
   throw new Error("Missing required environment variables: CF_API_TOKEN or CF_ACCOUNT_ID");
 }
+
+const SYSTEM_PROMPT = "twerk"
 
 async function storeMessage(conversationId: ObjectId, userId: string, role: string, content: string) {
   return DatabaseService.createMessage({
@@ -48,11 +47,10 @@ function validateMessage(message: any) {
   };
 }
 
-async function runModel(messages: any[], tools = AVAILABLE_TOOLS) {
+async function runModel(messages: any[]) {
   try {
-    // Only validate messages that will be sent to the model
     const validatedMessages = messages
-      .filter(msg => msg.content != null)  // Skip messages with null content
+      .filter(msg => msg.content != null) 
       .map(validateMessage);
     
     const payload = {
@@ -62,11 +60,6 @@ async function runModel(messages: any[], tools = AVAILABLE_TOOLS) {
       })),
       stream: false
     };
-
-    // Add tools if provided
-    if (tools && tools.length > 0) {
-      payload['tools'] = tools;
-    }
 
     console.log('Sending payload:', JSON.stringify(payload, null, 2));
 
@@ -97,20 +90,6 @@ async function runModel(messages: any[], tools = AVAILABLE_TOOLS) {
   }
 }
 
-async function generateTitle(userMessage: string): Promise<string> {
-  try {
-    const titlePrompt = `Based on this initial message, generate a short, descriptive title (max 6 words): "${userMessage}"`;
-    const result = await runModel([
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: titlePrompt }
-    ]);
-    return result?.response?.replace(/["']/g, '').trim() || 'New Conversation';
-  } catch (error) {
-    console.error('Error generating title:', error);
-    return 'New Conversation';
-  }
-}
-
 export default async function handler(
   req: NextApiRequest, 
   res: NextApiResponse
@@ -125,9 +104,8 @@ export default async function handler(
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { interactionMessages, conversationId, walletAddress, isGuruMode } = req.body;
+  const { interactionMessages, conversationId } = req.body;
 
-  console.log("GURU MODE:", isGuruMode);
   if (!interactionMessages?.length) {
     return res.status(400).json({ error: 'Messages are required' });
   }
@@ -164,66 +142,25 @@ export default async function handler(
       { role: 'system', content: SYSTEM_PROMPT },
     ];
 
-    // If guru mode is enabled, perform semantic search and add context
-    if (isGuruMode) {
-      try {
-        const searchResults = await performSemanticSearch(userMessage);
-        if (searchResults.length > 0) {
-          const contextString = formatSearchResultsAsContext(searchResults);
-          fullMessages.push({
-            role: 'system',
-            content: `Here is some relevant context for the user's question:\n\n${contextString}\n\nPlease use this information to provide a more informed response.`
-          });
-        }
-      } catch (error) {
-        console.error('Error in semantic search:', error);
-        // Continue without context if search fails
-      }
-    }
-
     // Add conversation messages and wallet address
     fullMessages.push(
       ...interactionMessages.map(msg => ({
         role: msg.role,
         content: String(msg.content)
-      })),
-      { role: 'system', content: `Connected wallet address: ${walletAddress}` }
+      }))
     );
 
-    // Get initial response
     const initialResponse = await runModel(fullMessages);
 
-    let responseToStore: string;
+    let responseToStore: string = initialResponse.response || 'No response from the model';
 
-    // Handle tool calls if present
-    if (initialResponse.tool_calls?.length) {
-      const toolResults = await handleToolCalls(initialResponse.tool_calls, runModel);
-      if (toolResults) {
-        responseToStore = toolResults;
-      }
-    }
-
-    // If no tool results, use the model's response
-    if (!responseToStore && initialResponse.response) {
-      responseToStore = initialResponse.response;
-    }
-
-    // Fallback response if neither tool results nor model response
-    if (!responseToStore) {
-      responseToStore = "I'm here to help with your Solana wallet. Is there something specific you'd like to know?";
-    }
-
-    // Store the assistant's response
-    if (!responseToStore.startsWith('[{') || !responseToStore.endsWith('}]')) {
-      await storeMessage(
-        currentConversationId,
-        userId,
-        'assistant',
-        responseToStore
-      );
-    }
-
-    // Return the response
+    await storeMessage(
+      currentConversationId,
+      userId,
+      'assistant',
+      responseToStore
+    );
+    
     return res.status(200).json({
       response: responseToStore,
       messages: await DatabaseService.getConversationMessages(currentConversationId),

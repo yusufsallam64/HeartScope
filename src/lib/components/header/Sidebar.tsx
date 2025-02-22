@@ -75,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className={`group w-full p-4 text-left rounded-xl backdrop-blur-sm transition-all duration-300 border
                     ${currentConversation?._id.toString() === conversation._id.toString()
                       ? 'bg-accent-500/10 border-accent-500/20 hover:border-accent-500/30 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                      : 'bg-background-950/50 border-secondary-500/20 hover:border-secondary-500/30 hover:shadow-[0_0_15px_rgba(148,163,184,0.2)] hover:bg-background-900/50'}`}
+                      : 'bg-background-100/50 border-secondary-500/20 hover:border-secondary-500/30 hover:shadow-[0_0_15px_rgba(148,163,184,0.2)] hover:bg-background-900/50'}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-1.5 rounded-lg bg-accent-500/10 text-accent-400 group-hover:text-accent-300 transition-colors duration-200">
@@ -91,7 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               {conversations.length > displayCount && (
                 <button
                   onClick={() => setDisplayCount(prev => prev + conversationCount)}
-                  className="w-full py-2 text-center text-sm text-accent-400 hover:text-accent-300 transition-all duration-200 rounded-lg bg-background-950/50 hover:bg-accent-500/20 hover:shadow-[0_0_15px_rgba(99,102,241,0.2)] border border-secondary-500/20 hover:border-accent-500/30"
+                  className="w-full py-2 text-center text-sm text-accent-400 hover:text-accent-300 transition-all duration-200 rounded-lg bg-background-100/50 hover:bg-accent-500/20 hover:shadow-[0_0_15px_rgba(99,102,241,0.2)] border border-secondary-500/20 hover:border-accent-500/30"
                 >
                   Show More
                 </button>

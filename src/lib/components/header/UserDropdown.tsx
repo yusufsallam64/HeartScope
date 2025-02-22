@@ -40,7 +40,7 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose }) => {
   return (
     <>
       <div
-        className="fixed inset-0 z-30 bg-background-950/10 backdrop-blur-sm"
+        className="fixed inset-0 z-30 bg-background-100/10 backdrop-blur-sm"
         onClick={onClose}
       />
       <div

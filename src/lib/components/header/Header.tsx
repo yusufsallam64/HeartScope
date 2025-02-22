@@ -36,8 +36,8 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-background-950">
-      <header className="fixed top-0 left-0 right-0 h-16 bg-background-950/95 backdrop-blur-xl border-b border-primary-200/30 px-4 flex items-center justify-between z-10">
+    <div className="min-h-screen bg-background-100">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-background-100/95 backdrop-blur-xl border-b border-primary-200/30 px-4 flex items-center justify-between z-10">
         <div className="flex items-center">
           <div className="px-4">
             <button

@@ -52,7 +52,7 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-background-950/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-background-100/60 backdrop-blur-sm" />
       
       {/* Ambient Light Effects */}
       <div className="absolute inset-0 pointer-events-none">
