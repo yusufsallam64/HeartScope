@@ -16,24 +16,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ session, onClick, size }) => {
     setImageError(true);
   };
 
-  const renderFallbackAvatar = () => (
-    <div className="h-8 w-8 rounded-full bg-transparent flex items-center justify-center">
-      <img
-        src="/providers/phantom.svg"
-        alt="Phantom"
-        className="h-6 w-6 rounded-full"
-      />
-    </div>
-  );
-
-  // Function to truncate wallet address
-  const truncateAddress = (address: string) => {
-    if (!address) return '';
-    const start = address.slice(0, 4);
-    const end = address.slice(-4);
-    return `${start}...${end}`;
-  };
-
   return (
     <button
       onClick={onClick ?? (() => {})}
@@ -54,12 +36,18 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ session, onClick, size }) => {
         <div className="relative h-full w-full rounded-full overflow-hidden">
           {session?.user?.image && !imageError ? (
             <img
-              src={"/providers/phantom.svg"}
-              alt="Phantom"
-              className="h-8 w-8 rounded-full"
+              src={session.user.image}
+              alt="User avatar"
+              className="object-cover w-full h-full"
               onError={handleImageError}
             />
-          ) : renderFallbackAvatar()}
+          ) : (
+            <div className="flex items-center justify-center w-full h-full bg-primary-100 text-primary-900 font-semibold">
+              {session?.user?.name?.charAt(0).toUpperCase
+                ? session.user.name.charAt(0).toUpperCase()
+                : 'U'}
+            </div>
+          )}
         </div>
       </div>
       {/* User details */}
