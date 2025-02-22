@@ -2,10 +2,9 @@ export const DB_CONFIG = {
   name: "DB",
   collections: {
     users: 'users',
-    conversations: 'conversations',
-    messages: 'messages',
     accounts: 'accounts',
     sessions: 'sessions',
+    analyses: 'analyses',
     verificationTokens: 'verification_tokens'
   } as const
 };

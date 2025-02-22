@@ -76,6 +76,7 @@ export const authOptions: AuthOptions = {
             ...session.user,
             image: dbUser.imageUrl || session.user.image,
             email: dbUser.email,
+            id: dbUser._id.toString(),
           }
         };
       } catch (error) {
