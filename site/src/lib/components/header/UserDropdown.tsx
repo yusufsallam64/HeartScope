@@ -18,6 +18,7 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose }) => {
         onClose();
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
@@ -38,21 +39,23 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <>
-      <div
-        className="fixed inset-0 z-30 bg-background-100/10 backdrop-blur-sm"
+    <div>
+      <div 
+        className="fixed inset-0 z-30 "
         onClick={onClose}
       />
       <div
-        ref={dropdownRef}
         className="absolute right-0 top-14 w-48 z-40 animate-in fade-in slide-in-from-top-2 duration-200"
+        ref={dropdownRef}
+        onClick={(e) => e.stopPropagation()} // Stop event propagation here
       >
         {/* Glow effect */}
         <div className="absolute -inset-0.5 bg-accent-500/20 opacity-0 group-hover:opacity-100 rounded-xl blur transition duration-300" />
         
         {/* Dropdown content */}
-        <div className="relative rounded-xl bg-background-900/40 backdrop-blur-xl border border-primary-200/30 overflow-hidden">
-          <div className="py-1"><button
+        <div className="relative rounded-xl bg-background-800 border border-primary-200/30 overflow-hidden">
+          <div className="py-1">
+            <button
               className="w-full px-4 py-2.5 text-left text-primary-100 hover:bg-accent-500/10 flex items-center gap-2.5 transition-all duration-200 group"
               onClick={handleSignOut}
             >
@@ -62,7 +65,7 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

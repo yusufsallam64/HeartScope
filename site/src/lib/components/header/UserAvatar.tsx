@@ -5,11 +5,12 @@ import clsx from 'clsx';
 
 interface UserAvatarProps {
   session: Session | null;
+  isOpen: boolean;
   onClick?: (() => void | undefined);
   size?: number;
 }
 
-const UserAvatar: React.FC<UserAvatarProps> = ({ session, onClick, size }) => {
+const UserAvatar: React.FC<UserAvatarProps> = ({ session, isOpen, onClick, size }) => {
   const [imageError, setImageError] = useState(false);
 
   const handleImageError = () => {
@@ -20,20 +21,20 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ session, onClick, size }) => {
     <button
       onClick={onClick ?? (() => {})}
       className={clsx(
-        "relative group flex items-center gap-2 px-2 py-1.5 rounded-md transition-all duration-300",
-        "bg-background-100 hover:bg-background-900",
-        "border border-primary-200/10",
+        "relative group flex items-center gap-2 px-2 py-1.5 rounded-md transition-all duration-300 ",
+        "bg-background-100 hover:bg-background-800",
+        "border border-primary-900/10",
         onClick && [
           'cursor-pointer',
-          'hover:shadow-[0_0_15px_rgba(99,102,241,0.1)]',
-        ]
+        ],
+        isOpen && 'bg-background-800',
       )}
       style={{ transform: `scale(${size ? size : 1})` }}
       title={'User'}
     >
       {/* Avatar container */}
-      <div className="relative h-8 w-8">
-        <div className="relative h-full w-full rounded-full overflow-hidden">
+      <div className="relative h-8 w-8 ">
+        <div className={clsx("relative h-full w-full rounded-full overflow-hidden border border-primary-900/60 transition-colors duration-200", isOpen && "border-primary-100")}>
           {session?.user?.image && !imageError ? (
             <img
               src={session.user.image}
@@ -52,13 +53,19 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ session, onClick, size }) => {
       </div>
       {/* User details */}
       <div className="flex flex-col items-start justify-center">
-        <span className="text-sm font-semibold text-primary-100/80 group-hover:text-primary-100 transition-colors duration-200">
+        <span className=
+          {
+            clsx(
+              "text-sm font-semibold text-accent-400 group-hover:text-primary-100 transition-colors duration-200",
+              isOpen && "text-primary-100"
+            ) 
+          }>
           {session?.user?.name ?? 'User'}
         </span>
       </div>
 
       {/* Dropdown indicator */}
-      <ChevronDown className="w-4 h-4 text-primary-100/60" />
+      <ChevronDown className={clsx("w-4 h-4 group-hover:text-primary-100 transition-all duration-200", (isOpen && "rotate-180 text-primary-100"))}/>
     </button>
   );
 };

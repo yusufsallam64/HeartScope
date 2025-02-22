@@ -45,6 +45,7 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-4">
           <div className="relative">
             <UserAvatar
+              isOpen={isDropdownOpen}
               session={session}
               onClick={handleUserAvatarClick}
             />
