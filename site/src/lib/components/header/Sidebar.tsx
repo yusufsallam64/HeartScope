@@ -1,6 +1,5 @@
 import React from 'react';
 import { ChevronRight, Clock, FileText, Plus, X } from 'lucide-react';
-import PastAnalyses from '@/lib/components/sidebar/PastAnalyses';
 import { Button } from '@/components/ui/button';
 import { Card } from '../ui/card';
 

@@ -29,9 +29,10 @@ interface ImagePreview {
 }
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png'];
 
 interface NewAnalysisProps {
-    onSuccess?: () => void;
+  onSuccess?: () => void;
 }
 
 const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
@@ -70,6 +71,10 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const validateFileType = (file: File): boolean => {
+    return ALLOWED_FILE_TYPES.includes(file.type);
+  };
+
   const validateFileSize = (file: File): boolean => {
     return file.size <= MAX_FILE_SIZE;
   };
@@ -94,10 +99,12 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
     const invalidFiles: string[] = [];
     
     fileArray.forEach(file => {
-      if (validateFileSize(file)) {
-        validFiles.push(file);
+      if (!validateFileType(file)) {
+        invalidFiles.push(`${file.name} (Invalid file type - only JPG and PNG allowed)`);
+      } else if (!validateFileSize(file)) {
+        invalidFiles.push(`${file.name} (Exceeds 1MB size limit)`);
       } else {
-        invalidFiles.push(file.name);
+        validFiles.push(file);
       }
     });
 
@@ -198,7 +205,7 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
       {rejectedFiles.length > 0 && (
         <Alert variant="destructive">
           <AlertDescription>
-            The following files exceed the 1MB size limit and were not uploaded:
+            The following files were not uploaded:
             <ul className="mt-2 list-disc list-inside">
               {rejectedFiles.map((fileName, index) => (
                 <li key={index}>{fileName}</li>
@@ -297,13 +304,13 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
               <div className="flex items-center gap-3">
                 <Upload className="h-5 w-5 text-primary-500" />
                 <label className="text-sm font-medium text-primary-900 cursor-pointer">
-                  Upload Medical Images <span className="text-red-500">*</span>
+                  Upload Medical Images (JPG/PNG only) <span className="text-red-500">*</span>
                   <input
                     type="file"
                     multiple
                     onChange={handleFileChange}
                     className="hidden"
-                    accept="image/*"
+                    accept="image/jpeg,image/png"
                   />
                 </label>
                 {selectedFiles.length > 0 && (

@@ -10,3 +10,13 @@ export interface User {
   lastLoginAt: Date;
 }
 
+export interface FrontendAnalysis {
+    id: string;
+    patientName: string;
+    age: number;
+    date: string;
+    medicalHistory: string;
+    currentMedications: string;
+    symptoms: string;
+    images: string[];
+}

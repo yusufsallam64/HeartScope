@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { getCollection } from './client';
 
-interface PatientInfo {
+export interface PatientInfo {
   name: string;
   age: string;
   symptoms: string;
@@ -9,7 +9,7 @@ interface PatientInfo {
   currentMedications: string;
 }
 
-interface Analysis {
+export interface Analysis {
   _id: ObjectId;
   patientInfo: PatientInfo;
   images: string[];

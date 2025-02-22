@@ -3,80 +3,44 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Maximize2, X, Calendar, User, FileText, Pill } from 'lucide-react';
+import { FrontendAnalysis as Analysis } from '@/lib/db/types';
 
 interface AnalysisDetailProps {
-  id?: string;
+  analysis: Analysis;
+  onDelete: () => void;
 }
 
-interface Analysis {
-  id: string;
-  patientName: string;
-  age: number;
-  date: string;
-  symptoms: string;
-  medicalHistory: string;
-  currentMedications: string;
-  images: string[];
-}
-
-const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ id }) => {
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchAnalysis = async () => {
-      if (!id) return;
-      
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const response = await fetch(`/api/analysis/${id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch analysis');
-        }
-        
-        const data = await response.json();
-        setAnalysis(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAnalysis();
-  }, [id]);
-
-  if (!id) {
-    return <div>No analysis selected</div>;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-red-500 p-4">
-        Error loading analysis: {error}
-      </div>
-    );
-  }
 
   if (!analysis) {
     return <div>Analysis not found</div>;
   }
 
-  const handleImageClick = (imageUrl: string) => {
-    setSelectedImage(imageUrl);
+  const getImageSrc = (base64Data: string) => {
+    // If it's already a data URI, return directly
+    if (base64Data.startsWith('data:')) {
+      return base64Data;
+    }
+    
+    // Determine MIME type from Base64 content
+    if (base64Data.startsWith('iVBORw')) { // PNG signature
+      return `data:image/png;base64,${base64Data}`;
+    }
+    if (base64Data.startsWith('/9j/') || base64Data.startsWith('FFD8')) { // JPEG signatures
+      return `data:image/jpeg;base64,${base64Data}`;
+    }
+    if (base64Data.includes('svg')) { // SVG content (caution: might not be reliable)
+      return `data:image/svg+xml;base64,${base64Data}`;
+    }
+  
+    // Default to JPEG if unknown
+    return `data:image/jpeg;base64,${base64Data}`;
+  };
+
+  const handleImageClick = (imageData: string) => {
+    setSelectedImage(getImageSrc(imageData));
     setIsModalOpen(true);
   };
 
@@ -139,23 +103,23 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ id }) => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {analysis.images.map((imageUrl, index) => (
+              {analysis.images.map((imageData, index) => (
                 <div 
                   key={index}
                   className="relative group cursor-pointer"
-                  onClick={() => handleImageClick(imageUrl)}
+                  onClick={() => handleImageClick(imageData)}
                 >
-                  <div className="aspect-square rounded-lg overflow-hidden">
+                   <div className="aspect-square rounded-lg overflow-hidden bg-white">
                     <img
-                      src={imageUrl}
+                      src={getImageSrc(imageData)}
                       alt={`Medical image ${index + 1}`}
-                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      className="w-full h-full object-contain transition-transform duration-200"
                     />
-                  </div>
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
-                    <Maximize2 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </div>
+                   </div>
+                   <div className="absolute inset-0 group-hover:bg-black/20 transition-opacity flex items-center justify-center">
+                     <Maximize2 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                   </div>
+                 </div>
               ))}
             </div>
           </CardContent>
@@ -169,7 +133,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ id }) => {
               <img
                 src={selectedImage}
                 alt="Medical image"
-                className="w-full h-auto max-h-[80vh] object-contain"
+                className="w-full h-auto max-h-[80vh] object-contain bg-white"
               />
               <div className="absolute top-2 right-2">
                 <Button
