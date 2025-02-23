@@ -34,6 +34,17 @@ interface PDFFile {
   name: string;
   size: string;
 }
+interface AnalysisResult {
+  filename: string;
+  annotations: any[]; // Replace with proper type based on your FastAPI response
+  visualization_path: string | null;
+}
+
+interface ApiResponse {
+  message: string;
+  analysisId?: string;
+  results?: AnalysisResult[];
+}
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB in bytes
@@ -61,6 +72,8 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<ImagePreview | null>(null);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
+
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B';
@@ -205,15 +218,70 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
   
     setIsSubmitting(true);
   
-    // Simulate processing delay
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Convert images to base64
+      const imagePromises = selectedFiles.map(file => {
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve(reader.result as string);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      });
+  
+      const base64Images = await Promise.all(imagePromises);
+  
+      // Prepare the request body
+      const requestBody = {
+        name: patientInfo.name,
+        age: patientInfo.age,
+        symptoms: patientInfo.symptoms,
+        medicalHistory: patientInfo.medicalHistory,
+        currentMedications: patientInfo.currentMedications,
+        images: base64Images
+      };
+  
+      // Send to your API
+      const response = await fetch('/api/analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to save analysis');
+      }
+  
+      const data: ApiResponse = await response.json();
+  
+      // Handle successful analysis
+      if (data.results) {
+        setAnalysisResults(data.results);
+      }
+  
+      // Call success callback if provided
       onSuccess?.();
-    }, 2000);
+  
+    } catch (error) {
+      console.error('Submission error:', error);
+      // TODO: Add error handling UI
+      setErrors(prev => ({
+        ...prev,
+        submit: 'Failed to submit analysis. Please try again.'
+      }));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+  
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Rejected Files Alert */}
       {rejectedFiles.length > 0 && (
         <Alert variant="destructive">
           <AlertDescription>
@@ -234,7 +302,25 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
           </AlertDescription>
         </Alert>
       )}
-
+  
+      {/* Submit Error Alert */}
+      {errors.submit && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {errors.submit}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setErrors(prev => ({ ...prev, submit: undefined }))}
+              className="mt-2"
+            >
+              Dismiss
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+  
+      {/* Patient Information Card */}
       <Card className="bg-white shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -277,7 +363,7 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
               )}
             </div>
           </div>
-
+  
           <div>
             <label className="block text-sm font-medium mb-1">Current Symptoms</label>
             <Textarea
@@ -288,7 +374,7 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
               placeholder="Describe current symptoms including chest pain, dizziness, shortness of breath, etc."
             />
           </div>
-
+  
           <div>
             <label className="block text-sm font-medium mb-1">Medical History</label>
             <Textarea
@@ -299,7 +385,7 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
               placeholder="Enter relevant medical history"
             />
           </div>
-
+  
           <div>
             <label className="block text-sm font-medium mb-1">Current Medications</label>
             <Textarea
@@ -312,7 +398,8 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
           </div>
         </CardContent>
       </Card>
-
+  
+      {/* Medical Records Card */}
       <Card className="bg-white shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -334,7 +421,7 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
                 />
               </label>
             </div>
-
+  
             {selectedPDF && (
               <div className="mt-4 flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center gap-2">
@@ -358,7 +445,8 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
           </div>
         </CardContent>
       </Card>
-
+  
+      {/* Medical Images Card */}
       <Card className="bg-white shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -390,7 +478,7 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
               <p className="mt-2 text-sm text-red-500">{errors.files}</p>
             )}
           </div>
-
+  
           {imagePreviews.length > 0 && (
             <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {imagePreviews.map((preview, index) => (
@@ -424,7 +512,47 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
           )}
         </CardContent>
       </Card>
-
+  
+      {/* Analysis Results Card */}
+      {analysisResults && analysisResults.length > 0 && (
+        <Card className="bg-white shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Analysis Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {analysisResults.map((result, index) => (
+                <div key={index} className="relative">
+                  {result.visualization_path && (
+                    <div className="relative cursor-pointer overflow-hidden rounded-lg h-32">
+                      <img
+                        src={`http://localhost:8000${result.visualization_path}`}
+                        alt={`Analysis Result ${index + 1}`}
+                        className="w-full h-full object-contain bg-white rounded-lg"
+                        onClick={() => handleImageClick({
+                          url: `http://localhost:8000${result.visualization_path!}`,
+                          file: selectedFiles[index],
+                          name: result.filename
+                        })}
+                      />
+                    </div>
+                  )}
+                  {result.annotations.length > 0 && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      Found {result.annotations.length} annotations
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+  
+      {/* Submit Button */}
       <div className="flex justify-end">
         <Button
           type="submit"
@@ -441,7 +569,8 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
           )}
         </Button>
       </div>
-
+  
+      {/* Image Preview Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-4xl w-full p-0">
           {selectedImage && (
