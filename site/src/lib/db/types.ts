@@ -19,4 +19,5 @@ export interface FrontendAnalysis {
     currentMedications: string;
     symptoms: string;
     images: string[];
+    analyzedImages: string[]; 
 }

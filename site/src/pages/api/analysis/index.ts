@@ -107,9 +107,22 @@ export default async function handler(
       symptoms: symptoms || '',
       medicalHistory: medicalHistory || '',
       currentMedications: currentMedications || '',
-      analysisResults: fastAPIResults.results // Store FastAPI results
-    };
-
+      analysisResults: fastAPIResults.results,
+      // Convert visualization paths to base64
+      analyzedImages: await Promise.all(
+          fastAPIResults.results
+              .filter(result => result.visualization_path !== null)
+              .map(async result => {
+                  const response = await fetch(`http://localhost:8000${result.visualization_path}`);
+                  const arrayBuffer = await response.arrayBuffer();
+                  const buffer = Buffer.from(arrayBuffer);
+                  const base64 = buffer.toString('base64');
+                  const mimeType = 'image/jpeg'; // Adjust if needed based on actual image type
+                  return `data:${mimeType};base64,${base64}`;
+              })
+      )
+  };
+  
     // Save everything to MongoDB
     const analysisId = await AnalysisService.createAnalysis(
       patientInfo,

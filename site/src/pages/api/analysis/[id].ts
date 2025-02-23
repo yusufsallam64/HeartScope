@@ -31,15 +31,17 @@ export default async function handler(
 
     // Format the analyses for the frontend
     const formattedAnalyses = analyses.map(analysis => ({
-        id: analysis._id.toHexString(),
-        patientName: analysis.patientInfo.name,
-        age: parseInt(analysis.patientInfo.age),
-        date: analysis.createdAt.toISOString(),
-        medicalHistory: analysis.patientInfo.medicalHistory,
-        currentMedications: analysis.patientInfo.currentMedications,
-        symptoms: analysis.patientInfo.symptoms,
-        images: analysis.images
-    }));
+      id: analysis._id.toHexString(),
+      patientName: analysis.patientInfo.name,
+      age: parseInt(analysis.patientInfo.age),
+      date: analysis.createdAt.toISOString(),
+      medicalHistory: analysis.patientInfo.medicalHistory,
+      currentMedications: analysis.patientInfo.currentMedications,
+      symptoms: analysis.patientInfo.symptoms,
+      images: analysis.images,
+      analyzedImages: analysis.patientInfo.analyzedImages || []
+  }));
+
 
     console.log('Fetched analyses:', formattedAnalyses);
 

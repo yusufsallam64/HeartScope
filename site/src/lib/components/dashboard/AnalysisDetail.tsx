@@ -23,7 +23,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
     if (base64Data.startsWith('data:')) {
       return base64Data;
     }
-    
+
     if (base64Data.startsWith('iVBORw')) {
       return `data:image/png;base64,${base64Data}`;
     }
@@ -33,7 +33,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
     if (base64Data.includes('svg')) {
       return `data:image/svg+xml;base64,${base64Data}`;
     }
-  
+
     return `data:image/jpeg;base64,${base64Data}`;
   };
 
@@ -73,7 +73,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
                 View Medical Records
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <h4 className="font-medium flex items-center gap-2">
@@ -82,7 +82,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
                 </h4>
                 <p className="mt-1 text-primary-600">{analysis.symptoms || 'None recorded'}</p>
               </div>
-              
+
               <div>
                 <h4 className="font-medium flex items-center gap-2">
                   <FileText className="w-4 h-4" />
@@ -90,7 +90,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
                 </h4>
                 <p className="mt-1 text-primary-600">{analysis.medicalHistory || 'None recorded'}</p>
               </div>
-              
+
               <div>
                 <h4 className="font-medium flex items-center gap-2">
                   <Pill className="w-4 h-4" />
@@ -106,32 +106,64 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
       {analysis.images && analysis.images.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Medical Images</CardTitle>
+            <CardTitle>Original Medical Images</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {analysis.images.map((imageData, index) => (
-                <div 
+                <div
                   key={index}
                   className="relative group cursor-pointer"
                   onClick={() => handleImageClick(imageData)}
                 >
-                   <div className="aspect-square rounded-lg overflow-hidden bg-white">
+                  <div className="aspect-square rounded-lg overflow-hidden bg-white">
                     <img
                       src={getImageSrc(imageData)}
                       alt={`Medical image ${index + 1}`}
                       className="w-full h-full object-contain transition-transform duration-200"
                     />
-                   </div>
-                   <div className="absolute inset-0 group-hover:bg-black/20 transition-opacity flex items-center justify-center">
-                     <Maximize2 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                   </div>
-                 </div>
+                  </div>
+                  <div className="absolute inset-0 group-hover:bg-black/20 transition-opacity flex items-center justify-center">
+                    <Maximize2 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
               ))}
             </div>
           </CardContent>
         </Card>
       )}
+
+
+      {analysis.analyzedImages && analysis.analyzedImages.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Analyzed Medical Images</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {analysis.analyzedImages.map((imageData, index) => (
+                <div
+                  key={index}
+                  className="relative group cursor-pointer"
+                  onClick={() => handleImageClick(imageData)}
+                >
+                  <div className="aspect-square rounded-lg overflow-hidden bg-white">
+                    <img
+                      src={getImageSrc(imageData)}
+                      alt={`Analyzed medical image ${index + 1}`}
+                      className="w-full h-full object-contain transition-transform duration-200"
+                    />
+                  </div>
+                  <div className="absolute inset-0 group-hover:bg-black/20 transition-opacity flex items-center justify-center">
+                    <Maximize2 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Image Modal */}
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>

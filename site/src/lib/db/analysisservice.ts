@@ -2,17 +2,20 @@ import { ObjectId } from 'mongodb';
 import { getCollection } from './client';
 
 export interface PatientInfo {
+  analyzedImages?: string[];
   name: string;
   age: string;
   symptoms: string;
   medicalHistory: string;
   currentMedications: string;
+  
 }
 
 export interface Analysis {
   _id: ObjectId;
   patientInfo: PatientInfo;
   images: string[];
+  analyzedImages: string[];
   userId: ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -29,6 +32,7 @@ export class AnalysisService {
     const analysis: Omit<Analysis, '_id'> = {
       patientInfo,
       images,
+      analyzedImages: [],
       userId,
       createdAt: new Date(),
       updatedAt: new Date()
