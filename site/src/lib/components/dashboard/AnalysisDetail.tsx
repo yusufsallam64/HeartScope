@@ -8,26 +8,19 @@ import ImageAnnotation from './ImageAnnotation';
 
 interface AnalysisDetailProps {
   analysis: Analysis;
-  onDelete?: () => void;
-}
-
-type ImageFormat = 'png' | 'jpeg' | 'svg';
-
-interface Base64ImageData {
-  format: ImageFormat;
-  data: string;
+  onDelete: () => void;
 }
 
 const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
-  const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   if (!analysis) {
     return <div>Analysis not found</div>;
   }
 
-  const getImageSrc = (base64Data: string): string => {
+  const getImageSrc = (base64Data: string) => {
     if (base64Data.startsWith('data:')) {
       return base64Data;
     }
@@ -45,7 +38,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
     return `data:image/jpeg;base64,${base64Data}`;
   };
 
-  const handleImageClick = (imageData: string): void => {
+  const handleImageClick = (imageData: string) => {
     setSelectedImage(getImageSrc(imageData));
     setIsImageModalOpen(true);
   };
@@ -71,6 +64,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
                 <span className="text-sm text-primary-600">Age: </span>
                 <span className="font-medium">{analysis.age}</span>
               </div>
+              {/* Add PDF viewer button */}
               <Button
                 onClick={() => setIsPdfModalOpen(true)}
                 className="mt-4 flex items-center gap-2"
@@ -140,6 +134,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
         </Card>
       )} */}
 
+
       {analysis.analyzedImages && analysis.analyzedImages.length > 0 && (
         <Card>
           <CardHeader>
@@ -170,14 +165,19 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
         </Card>
       )}
 
+
       {/* Image Modal */}
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        {selectedImage && (
-          <ImageAnnotation 
-            imageUrl={selectedImage} 
-            onClose={() => setIsImageModalOpen(false)} 
-          />
-        )}
+        <DialogContent className="max-w-4xl w-full p-0">
+          {selectedImage && (
+            <ImageAnnotation 
+              imageUrl={selectedImage}
+              onClose={() => setIsImageModalOpen(false)} 
+              analysisId={''} 
+              imageIndex={0}            
+            />
+          )}
+        </DialogContent>
       </Dialog>
 
       {/* PDF Modal */}
@@ -195,7 +195,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
               </Button>
             </div>
             <iframe
-              src={`data/${analysis.id}.pdf`}
+              src={`data/6795027263ccf2a123836c6a.pdf`}
               className="w-full rounded-lg"
               style={{ height: 'calc(90vh - 2rem)' }}
               title="Medical Records"
