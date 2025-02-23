@@ -104,7 +104,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
         </CardContent>
       </Card>
 
-      {/* {analysis.images && analysis.images.length > 0 && (
+      {analysis.images && analysis.images.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Original Angiographs</CardTitle>
@@ -132,7 +132,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
             </div>
           </CardContent>
         </Card>
-      )} */}
+      )}
 
 
       {analysis.analyzedImages && analysis.analyzedImages.length > 0 && (
@@ -172,9 +172,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
           {selectedImage && (
             <ImageAnnotation 
               imageUrl={selectedImage}
-              onClose={() => setIsImageModalOpen(false)} 
-              analysisId={''} 
-              imageIndex={0}            
+              onClose={() => setIsImageModalOpen(false)}
             />
           )}
         </DialogContent>
