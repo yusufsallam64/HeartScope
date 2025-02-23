@@ -58,7 +58,7 @@ def process_single_image(model_path: str, image_path: Path, output_dir: Path) ->
      
 def main():
     # Configuration
-    MODEL_PATH = os.getenv('YOLO_WEIGHTS_PATH', "models/best.pt")
+    MODEL_PATH = os.getenv('YOLO_WEIGHTS_PATH', "models/segment-1.pt")
     IMAGE_DIR = Path("data/images")
     OUTPUT_DIR = Path("data/predictions")
     

@@ -42,16 +42,18 @@ def init_model():
         return False
 
 def ensure_rgb(image: np.ndarray) -> np.ndarray:
-    """Ensure image is in RGB format"""
-    if len(image.shape) == 2:  # Grayscale
+    """Ensure image is in RGB format, matching test.py implementation"""
+    if image is None:
+        raise ValueError("Input image is None")
+        
+    # If image is BGR (from cv2.imread), convert to RGB
+    if len(image.shape) == 3 and image.shape[2] == 3:
+        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    elif len(image.shape) == 2:  # Grayscale
         return cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    elif len(image.shape) == 3:
-        if image.shape[2] == 4:  # RGBA
-            return cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
-        elif image.shape[2] == 3:  # Already RGB/BGR
-            if image.dtype != np.uint8:
-                image = (image * 255).astype(np.uint8)
-            return image
+    elif len(image.shape) == 3 and image.shape[2] == 4:  # RGBA
+        return cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+    
     return image
 
 @app.on_event("startup")
@@ -67,31 +69,46 @@ async def analyze_images(files: List[UploadFile] = File(...)):
         raise HTTPException(status_code=503, detail="Model not initialized")
         
     try:
-        # Create batch of images
-        batch_images = []
-        for file in files:
-            content = await file.read()
-            image = Image.open(io.BytesIO(content)).convert('RGB')
-            image_array = np.array(image)
-            batch_images.append(image_array)
-
         # Process batch
         results = []
-        for idx, (file, image_array) in enumerate(zip(files, batch_images)):
+        for file in files:
             try:
-                # Process single image
-                processed_image = ensure_rgb(image_array)
+                # Read file content
+                content = await file.read()
                 
-                # Get annotations for single image
+                # Convert to numpy array using OpenCV (matching test.py)
+                nparr = np.frombuffer(content, np.uint8)
+                image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                
+                if image is None:
+                    raise ValueError(f"Failed to decode image: {file.filename}")
+                
+                # Convert to RGB (matching test.py processing)
+                processed_image = ensure_rgb(image)
+                
+                # Debug print for image shape and type
+                print(f"Processing {file.filename}: shape={processed_image.shape}, dtype={processed_image.dtype}")
+                
+                # Get annotations
                 annotations = inference_model.get_annotations(processed_image)
                 
-                # Create visualization if annotations exist
-                temp_path = None
+                # Debug print annotations
+                print(f"Annotations for {file.filename}:")
+                print(f"Raw annotations: {annotations}")
+                
+                # Always save an image, whether or not there are annotations
+                os.makedirs("temp", exist_ok=True)
+                temp_path = f"/temp/{file.filename}"
+                
                 if annotations and len(annotations) > 0:
-                    os.makedirs("temp", exist_ok=True)
+                    # If there are annotations, create visualization
                     visualized_image = visualizer.plot_boxes_and_masks(processed_image, annotations)
-                    temp_path = f"/temp/{file.filename}"
-                    cv2.imwrite(f".{temp_path}", cv2.cvtColor(visualized_image, cv2.COLOR_RGB2BGR))
+                    # Convert back to BGR for saving
+                    visualized_image = cv2.cvtColor(visualized_image, cv2.COLOR_RGB2BGR)
+                    cv2.imwrite(f".{temp_path}", visualized_image)
+                else:
+                    # If no annotations, save the original image (in BGR for consistency)
+                    cv2.imwrite(f".{temp_path}", cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR))
                 
                 # Convert numpy types to Python native types
                 formatted_annotations = {}
@@ -112,6 +129,8 @@ async def analyze_images(files: List[UploadFile] = File(...)):
                 
             except Exception as e:
                 print(f"Error processing file {file.filename}: {str(e)}")
+                import traceback
+                print(traceback.format_exc())
                 results.append({
                     "filename": file.filename,
                     "error": str(e),
@@ -141,7 +160,3 @@ async def get_image(filename: str):
     if os.path.exists(file_path):
         return FileResponse(file_path)
     raise HTTPException(status_code=404, detail="Image not found")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
