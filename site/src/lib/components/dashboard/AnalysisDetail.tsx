@@ -12,36 +12,34 @@ interface AnalysisDetailProps {
 
 const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   if (!analysis) {
     return <div>Analysis not found</div>;
   }
 
   const getImageSrc = (base64Data: string) => {
-    // If it's already a data URI, return directly
     if (base64Data.startsWith('data:')) {
       return base64Data;
     }
     
-    // Determine MIME type from Base64 content
-    if (base64Data.startsWith('iVBORw')) { // PNG signature
+    if (base64Data.startsWith('iVBORw')) {
       return `data:image/png;base64,${base64Data}`;
     }
-    if (base64Data.startsWith('/9j/') || base64Data.startsWith('FFD8')) { // JPEG signatures
+    if (base64Data.startsWith('/9j/') || base64Data.startsWith('FFD8')) {
       return `data:image/jpeg;base64,${base64Data}`;
     }
-    if (base64Data.includes('svg')) { // SVG content (caution: might not be reliable)
+    if (base64Data.includes('svg')) {
       return `data:image/svg+xml;base64,${base64Data}`;
     }
   
-    // Default to JPEG if unknown
     return `data:image/jpeg;base64,${base64Data}`;
   };
 
   const handleImageClick = (imageData: string) => {
     setSelectedImage(getImageSrc(imageData));
-    setIsModalOpen(true);
+    setIsImageModalOpen(true);
   };
 
   return (
@@ -65,6 +63,15 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
                 <span className="text-sm text-primary-600">Age: </span>
                 <span className="font-medium">{analysis.age}</span>
               </div>
+              {/* Add PDF viewer button */}
+              <Button
+                onClick={() => setIsPdfModalOpen(true)}
+                className="mt-4 flex items-center gap-2"
+                variant="outline"
+              >
+                <FileText className="w-4 h-4" />
+                View Medical Records
+              </Button>
             </div>
             
             <div className="space-y-4">
@@ -126,7 +133,8 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
         </Card>
       )}
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      {/* Image Modal */}
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
         <DialogContent className="max-w-4xl w-full p-0">
           {selectedImage && (
             <div className="relative">
@@ -140,13 +148,37 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
                   variant="destructive"
                   size="icon"
                   className="rounded-full"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsImageModalOpen(false)}
                 >
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Modal */}
+      <Dialog open={isPdfModalOpen} onOpenChange={setIsPdfModalOpen}>
+        <DialogContent className="max-w-5xl w-full p-0">
+          <div className="relative">
+            <div className="absolute top-2 right-2 z-50">
+              <Button
+                variant="destructive"
+                size="icon"
+                className="rounded-full"
+                onClick={() => setIsPdfModalOpen(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <iframe
+              src={`data/6795027263ccf2a123836c6a.pdf`}
+              className="w-full rounded-lg"
+              style={{ height: 'calc(90vh - 2rem)' }}
+              title="Medical Records"
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
