@@ -13,8 +13,6 @@ interface Analysis {
 }
 
 interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
   onCreateNew: () => void;
   onSelectAnalysis: (id: string) => void;
   selectedAnalysisId?: string;
@@ -23,8 +21,6 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  isOpen,
-  setIsOpen,
   onCreateNew,
   onSelectAnalysis,
   selectedAnalysisId,
@@ -33,19 +29,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   return (
     <div
-      className={`fixed md:static top-16 bg-background-100/50 backdrop-blur-xl border-r border-primary-200/30 shadow-lg transition-all duration-300 h-[calc(100vh-4rem)] ${
-        isOpen ? 'w-full md:w-64' : 'w-0 overflow-hidden'
-      }`}
+      className={`fixed md:static top-16 bg-background-100/50 backdrop-blur-xl border-r border-primary-200/30 shadow-lg transition-all duration-300 h-[calc(100vh-4rem)] w-full md:w-64`}
     >
       <div className="h-full flex flex-col min-w-[16rem]">
         <div className="flex-none flex items-center justify-between px-4 py-3 border-b border-primary-200/30 bg-background-300/20">
           <h2 className="text-base font-title text-text-700 font-semibold">Past Analyses</h2>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-1 rounded-lg hover:bg-accent/10 transition-colors duration-200 text-text-700 hover:text-text-900 md:hidden"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
         
         <div className="flex flex-col h-full">

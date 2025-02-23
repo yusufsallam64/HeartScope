@@ -12,15 +12,8 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({
   children,
 }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { data: session } = useSession();
-
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setIsSidebarOpen(false);
-    }
-  }, []);
 
   const handleUserAvatarClick = () => {
     setIsDropdownOpen((prev) => !prev);
@@ -32,7 +25,6 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center">
           <div className="px-4">
             <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="text-xl font-title hover:opacity-80 transition-all duration-200 flex items-center gap-3"
             >
               <Logo size={32} />

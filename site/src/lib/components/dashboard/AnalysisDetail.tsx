@@ -106,7 +106,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
       {analysis.images && analysis.images.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Original Medical Images</CardTitle>
+            <CardTitle>Original Angiographs</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -137,7 +137,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
       {analysis.analyzedImages && analysis.analyzedImages.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Analyzed Medical Images</CardTitle>
+            <CardTitle>Analyzed Angiographs</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
