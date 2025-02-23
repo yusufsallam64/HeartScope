@@ -30,7 +30,7 @@ def init_model():
     """Initialize the YOLO model and visualizer with error handling"""
     global inference_model, visualizer
     try:
-        MODEL_PATH = os.getenv('YOLO_WEIGHTS_PATH', "models/segment-1.pt")
+        MODEL_PATH = os.getenv('YOLO_WEIGHTS_PATH', "models/segment-2.pt")
         if not os.path.exists(MODEL_PATH):
             raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
         

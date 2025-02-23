@@ -20,7 +20,7 @@ class YOLOVisualizer:
         
         # Hot pink color (RGB) matching the reference image
         self.color = (255, 20, 147)  # RGB format
-        self.mask_alpha = 0.3  # Slightly transparent for mask
+        self.mask_alpha = 0.05  # Slightly transparent for mask
 
     def draw_annotations(self, img: np.ndarray, mask: np.ndarray, box: np.ndarray, class_id: int) -> np.ndarray:
         """Draw mask, box and label in the reference style"""
@@ -40,7 +40,7 @@ class YOLOVisualizer:
         
         # Draw bounding box in hot pink
         x1, y1, x2, y2 = map(int, box)
-        cv2.rectangle(img, (x1, y1), (x2, y2), self.color, 2)
+        cv2.rectangle(img, (x1, y1), (x2, y2), self.color, 1)
         
         # Add class label
         text = str(int(class_id))
