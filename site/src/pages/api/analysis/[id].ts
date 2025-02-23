@@ -43,7 +43,7 @@ export default async function handler(
   }));
 
 
-    console.log('Fetched analyses:', formattedAnalyses);
+    // console.log('Fetched analyses:', formattedAnalyses);
 
     return res.status(200).json(formattedAnalyses);
   } catch (error) {

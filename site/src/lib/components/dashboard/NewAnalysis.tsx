@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Upload, Clock, User, X, Maximize2, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useRouter } from 'next/router';
 
 interface PatientInfo {
   name: string;
@@ -34,9 +35,10 @@ interface PDFFile {
   name: string;
   size: string;
 }
+
 interface AnalysisResult {
   filename: string;
-  annotations: any[]; // Replace with proper type based on your FastAPI response
+  annotations: any[];
   visualization_path: string | null;
 }
 
@@ -46,16 +48,18 @@ interface ApiResponse {
   results?: AnalysisResult[];
 }
 
-const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
-const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+interface NewAnalysisProps {
+  onSuccess?: () => void;
+  onRedirectStart?: () => void;
+}
+
+const MAX_FILE_SIZE = 1024 * 1024;
+const MAX_PDF_SIZE = 10 * 1024 * 1024;
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png'];
 const ALLOWED_PDF_TYPE = 'application/pdf';
 
-interface NewAnalysisProps {
-  onSuccess?: () => void;
-}
-
-const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
+const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess, onRedirectStart }) => {
+  const router = useRouter();
   const [patientInfo, setPatientInfo] = useState<PatientInfo>({
     name: '',
     age: '',
@@ -73,13 +77,6 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
   const [selectedImage, setSelectedImage] = useState<ImagePreview | null>(null);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
-
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -118,6 +115,12 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
       return false;
     }
     return true;
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -217,8 +220,11 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
     }
   
     setIsSubmitting(true);
-  
+
     try {
+      // Signal redirect start before any processing
+      onRedirectStart?.();
+
       // Convert images to base64
       const imagePromises = selectedFiles.map(file => {
         return new Promise<string>((resolve, reject) => {
@@ -233,7 +239,6 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
   
       const base64Images = await Promise.all(imagePromises);
   
-      // Prepare the request body
       const requestBody = {
         name: patientInfo.name,
         age: patientInfo.age,
@@ -243,7 +248,6 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
         images: base64Images
       };
   
-      // Send to your API
       const response = await fetch('/api/analysis', {
         method: 'POST',
         headers: {
@@ -257,18 +261,20 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
       }
   
       const data: ApiResponse = await response.json();
-  
-      // Handle successful analysis
+
       if (data.results) {
         setAnalysisResults(data.results);
       }
-  
-      // Call success callback if provided
+
       onSuccess?.();
+
+      // Navigate to the new analysis
+      if (data.analysisId) {
+        router.push(`/dashboard?id=${data.analysisId}`);
+      }
   
     } catch (error) {
       console.error('Submission error:', error);
-      // TODO: Add error handling UI
       setErrors(prev => ({
         ...prev,
         submit: 'Failed to submit analysis. Please try again.'
@@ -277,7 +283,6 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
       setIsSubmitting(false);
     }
   };
-  
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -441,166 +446,166 @@ const NewAnalysis: React.FC<NewAnalysisProps> = ({ onSuccess }) => {
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-  
-      {/* Medical Images Card */}
-      <Card className="bg-white shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="w-5 h-5" />
-            Medical Images
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className={`bg-background-100 border ${errors.files ? 'border-red-500' : 'border-background-200'} rounded-lg p-4`}>
-            <div className="flex items-center gap-3">
-              <Upload className="h-5 w-5 text-primary-500" />
-              <label className="text-sm font-medium text-primary-900 cursor-pointer">
-                Upload Angiographs (JPG/PNG only) <span className="text-red-500">*</span>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                  accept="image/jpeg,image/png"
-                />
-              </label>
-              {selectedFiles.length > 0 && (
-                <span className="text-sm text-primary-600">
-                  {selectedFiles.length} file(s) selected
-                </span>
               )}
-            </div>
-            {errors.files && (
-              <p className="mt-2 text-sm text-red-500">{errors.files}</p>
-            )}
-          </div>
-  
-          {imagePreviews.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {imagePreviews.map((preview, index) => (
-                <div key={index} className="relative group bg-white">
-                  <div 
-                    className="relative cursor-pointer overflow-hidden rounded-lg h-32"
-                    onClick={() => handleImageClick(preview)}
-                  >
-                    <img
-                      src={preview.url}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-full object-contain bg-white rounded-lg transition-transform duration-200 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-transparent group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
-                      <Maximize2 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeImage(index);
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-  
-      {/* Analysis Results Card */}
-      {analysisResults && analysisResults.length > 0 && (
-        <Card className="bg-white shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Analysis Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {analysisResults.map((result, index) => (
-                <div key={index} className="relative">
-                  {result.visualization_path && (
-                    <div className="relative cursor-pointer overflow-hidden rounded-lg h-32">
-                      <img
-                        src={`http://localhost:8000${result.visualization_path}`}
-                        alt={`Analysis Result ${index + 1}`}
-                        className="w-full h-full object-contain bg-white rounded-lg"
-                        onClick={() => handleImageClick({
-                          url: `http://localhost:8000${result.visualization_path!}`,
-                          file: selectedFiles[index],
-                          name: result.filename
-                        })}
-                      />
-                    </div>
-                  )}
-                  {result.annotations.length > 0 && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      Found {result.annotations.length} annotations
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-  
-      {/* Submit Button */}
-      <div className="flex justify-end">
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="bg-primary-500 hover:bg-primary-600 text-white px-6"
-        >
-          {isSubmitting ? (
-            <div className="flex items-center gap-2">
-              <Clock className="animate-spin h-4 w-4" />
-              Processing...
-            </div>
-          ) : (
-            'Save Analysis'
-          )}
-        </Button>
-      </div>
-  
-      {/* Image Preview Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl w-full p-0">
-          {selectedImage && (
-            <div className="relative">
-              <img
-                src={selectedImage.url}
-                alt={selectedImage.name || "Preview"}
-                className="w-full h-auto max-h-[80vh] object-contain"
-              />
-              <div className="absolute top-2 right-2">
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="rounded-full"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
               </div>
-              {selectedImage.name && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm">
-                  {selectedImage.name}
+            </CardContent>
+          </Card>
+      
+          {/* Medical Images Card */}
+          <Card className="bg-white shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Medical Images
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`bg-background-100 border ${errors.files ? 'border-red-500' : 'border-background-200'} rounded-lg p-4`}>
+                <div className="flex items-center gap-3">
+                  <Upload className="h-5 w-5 text-primary-500" />
+                  <label className="text-sm font-medium text-primary-900 cursor-pointer">
+                    Upload Angiographs (JPG/PNG only) <span className="text-red-500">*</span>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileChange}
+                      className="hidden"
+                      accept="image/jpeg,image/png"
+                    />
+                  </label>
+                  {selectedFiles.length > 0 && (
+                    <span className="text-sm text-primary-600">
+                      {selectedFiles.length} file(s) selected
+                    </span>
+                  )}
+                </div>
+                {errors.files && (
+                  <p className="mt-2 text-sm text-red-500">{errors.files}</p>
+                )}
+              </div>
+      
+              {imagePreviews.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group bg-white">
+                      <div 
+                        className="relative cursor-pointer overflow-hidden rounded-lg h-32"
+                        onClick={() => handleImageClick(preview)}
+                      >
+                        <img
+                          src={preview.url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-full object-contain bg-white rounded-lg transition-transform duration-200 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-transparent group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
+                          <Maximize2 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage(index);
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
-            </div>
+            </CardContent>
+          </Card>
+      
+          {/* Analysis Results Card */}
+          {analysisResults && analysisResults.length > 0 && (
+            <Card className="bg-white shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Analysis Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {analysisResults.map((result, index) => (
+                    <div key={index} className="relative">
+                      {result.visualization_path && (
+                        <div className="relative cursor-pointer overflow-hidden rounded-lg h-32">
+                          <img
+                            src={`http://localhost:8000${result.visualization_path}`}
+                            alt={`Analysis Result ${index + 1}`}
+                            className="w-full h-full object-contain bg-white rounded-lg"
+                            onClick={() => handleImageClick({
+                              url: `http://localhost:8000${result.visualization_path!}`,
+                              file: selectedFiles[index],
+                              name: result.filename
+                            })}
+                          />
+                        </div>
+                      )}
+                      {result.annotations.length > 0 && (
+                        <div className="mt-2 text-sm text-gray-600">
+                          Found {result.annotations.length} annotations
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </DialogContent>
-      </Dialog>
-    </form>
-  );
-};
-
-export default NewAnalysis;
+      
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-primary-500 hover:bg-primary-600 text-white px-6"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <Clock className="animate-spin h-4 w-4" />
+                  Processing...
+                </div>
+              ) : (
+                'Save Analysis'
+              )}
+            </Button>
+          </div>
+      
+          {/* Image Preview Modal */}
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent className="max-w-4xl w-full p-0">
+              {selectedImage && (
+                <div className="relative">
+                  <img
+                    src={selectedImage.url}
+                    alt={selectedImage.name || "Preview"}
+                    className="w-full h-auto max-h-[80vh] object-contain"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="rounded-full"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {selectedImage.name && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm">
+                      {selectedImage.name}
+                    </div>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </form>
+      );
+    };
+    
+    export default NewAnalysis;
