@@ -1,16 +1,10 @@
-from concurrent.futures import ProcessPoolExecutor
-import gc
-import io
 import os
-import tempfile
-from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
+from time import perf_counter
 
 import cv2
-import img2pdf
 import numpy as np
-import pdf2image
 import torch
 from inference import OptimizedYOLOInference, YOLOInference
 from PIL import Image
@@ -23,209 +17,175 @@ class YOLOVisualizer:
     def __init__(self, model_path: str):
         """Initialize visualizer with inference model"""
         self.inferencer = YOLOInference(model_path)
+        
+        # Hot pink color (RGB) matching the reference image
+        self.color = (255, 20, 147)  # RGB format
+        self.mask_alpha = 0.3  # Slightly transparent for mask
 
-    def plot_boxes_only(self, image: np.ndarray, annotations: dict) -> np.ndarray:
-        """Custom plotting function to draw boxes with class colors and confidence scores"""
+    def draw_annotations(self, img: np.ndarray, mask: np.ndarray, box: np.ndarray, class_id: int) -> np.ndarray:
+        """Draw mask, box and label in the reference style"""
+        # Convert mask to boolean
+        binary_mask = mask > 0.5
+        
+        # Create and apply the semi-transparent mask
+        colored_mask = np.zeros_like(img)
+        colored_mask[binary_mask] = self.color
+        
+        # Blend mask with image
+        img = cv2.addWeighted(
+            img, 1.0,
+            colored_mask, self.mask_alpha,
+            0
+        )
+        
+        # Draw bounding box in hot pink
+        x1, y1, x2, y2 = map(int, box)
+        cv2.rectangle(img, (x1, y1), (x2, y2), self.color, 2)
+        
+        # Add class label
+        text = str(int(class_id))
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.6
+        thickness = 1
+        
+        # Get text size for background
+        (text_width, text_height), baseline = cv2.getTextSize(
+            text, font, font_scale, thickness)
+        
+        # Draw text with high visibility
+        text_x = x1
+        text_y = y1 - 10 if y1 - 10 > text_height else y1 + text_height
+        
+        # # Draw white text with a subtle shadow effect
+        # cv2.putText(img, text, (text_x, text_y), font, font_scale, 
+        #            (255, 255, 255), thickness)  # thicker white base
+        
+        return img
+
+    def plot_boxes_and_masks(self, image: np.ndarray, annotations: dict) -> np.ndarray:
+        """Plot segmentation masks with boxes and labels"""
         img = image.copy()
+        
+        if not annotations or 'masks' not in annotations:
+            return img
 
-        # Define colors for different classes (BGR format)
-        colors = [
-            (139, 0, 0),      # question - blue
-            (0, 0, 255),      # figure - scarlet red
-            (92, 184, 92),    # multiple_choice_option - green
-            (232, 229, 139),  # answer_region - light blue
-            (187, 233, 235)   # instruction - light yellow
-        ]
-
+        masks = annotations['masks']
+        classes = annotations['classes']
         boxes = annotations['boxes']
-        cls = annotations['classes']
-        conf = annotations['confidence']
-
-        for box, cls_id, conf_score in zip(boxes, cls, conf):
-            x1, y1, x2, y2 = map(int, box)
-            color = colors[int(cls_id) % len(colors)]
-
-            cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-
-            conf_text = f"{conf_score:.2f}"
-            font_scale = 0.4
-            font_thickness = 1
-            font = cv2.FONT_HERSHEY_SIMPLEX
-
-            (text_width, text_height), _ = cv2.getTextSize(
-                conf_text, font, font_scale, font_thickness)
-            cv2.rectangle(img, (x1, y1 - text_height - 2),
-                          (x1 + text_width, y1), (255, 255, 255), -1)
-            cv2.putText(img, conf_text, (x1, y1 - 2), font,
-                        font_scale, (0, 0, 0), font_thickness)
+        
+        for mask, cls_id, box in zip(masks, classes, boxes):
+            img = self.draw_annotations(img, mask, box, cls_id)
 
         return img
 
-    def compile_to_pdf(self, image_paths: List[Path], output_pdf_path: Path) -> bool:
-        """Compile images to PDF with quality preservation"""
+    def process_image(self, image_path: str, output_path: str) -> bool:
+        """Process a single image with segmentation visualization"""
         try:
-            image_bytes = []
-            for img_path in image_paths:
-                if isinstance(img_path, Path):
-                    img_path = str(img_path)
-
-                with Image.open(img_path) as img:
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-
-                    img_byte_arr = io.BytesIO()
-                    img.save(img_byte_arr, format='JPEG',
-                             quality=95, optimize=True)
-                    image_bytes.append(img_byte_arr.getvalue())
-
-            try:
-                pdf_bytes = img2pdf.convert(image_bytes, with_pdfrw=True)
-
-                if pdf_bytes:
-                    with open(output_pdf_path, 'wb') as pdf_file:
-                        pdf_file.write(pdf_bytes)
-            except Exception as e:
-                print(f"Error during PDF conversion: {e}")
+            image = cv2.imread(image_path)
+            if image is None:
                 return False
 
-            print(f"Successfully created PDF at {output_pdf_path}")
-            return True
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            annotations = self.inferencer.get_annotations(image_rgb)
+
+            if annotations:
+                visualized = self.plot_boxes_and_masks(image_rgb, annotations)
+                visualized_bgr = cv2.cvtColor(visualized, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(output_path, visualized_bgr)
+                return True
+            else:
+                return False
 
         except Exception as e:
-            print(f"Error creating PDF: {e}")
+            print(f"Error processing image {image_path}: {e}")
+            import traceback
+            print(traceback.format_exc())
             return False
 
-    def process_pdf(self, pdf_path: Path, output_dir: Path) -> Path:
-        """Process PDF with annotations and save visualization"""
-        pdf_path = Path(pdf_path)
+    def process_batch(self, images: List[np.ndarray], batch_size: int = 4) -> List[Dict[str, Any]]:
+        """Process a batch of images with segmentation support"""
+        if not images:
+            return []
+
+        results = []
+        start_time = perf_counter()
 
         try:
-            # Get original images and annotations
-            images = pdf2image.convert_from_path(str(pdf_path), dpi=300)
-            annotations = self.inferencer.process_pdf(pdf_path)
+            # For MPS device, process in smaller batches
+            if self.inferencer.device == 'mps':
+                batch_size = min(batch_size, 2)
 
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_dir_path = Path(temp_dir)
-                processed_image_paths = []
+            # Prepare batch
+            preprocessed = []
+            for img in images:
+                if isinstance(img, Image.Image):
+                    img = np.array(img)
+                prep_img, params = self.inferencer.preprocess_image(img)
+                preprocessed.append((prep_img, params))
 
-                for i, (image, page_annotations) in enumerate(zip(images, annotations), 1):
-                    if page_annotations:
-                        orig_width, orig_height = page_annotations['original_size']
-                        scale, x_offset, y_offset = page_annotations['preprocessing_params']
+            # Run inference on batch
+            batch_results = self.inferencer.process_batch(
+                [p[0] for p in preprocessed],
+                batch_size
+            )
 
-                        # Preprocess image for visualization
-                        processed_img, _ = self.inferencer.preprocess_image(
-                            image)
-
-                        # Plot boxes
-                        im_array = self.plot_boxes_only(
-                            processed_img, page_annotations)
-
-                        # Convert back to original aspect ratio
-                        im = Image.fromarray(im_array[..., ::-1])  # BGR to RGB
-                        im = im.crop((x_offset, y_offset,
-                                      x_offset + int(orig_width * scale),
-                                      y_offset + int(orig_height * scale)))
-                        im = im.resize((orig_width, orig_height),
-                                       Image.Resampling.LANCZOS)
-
-                        # Save with high quality
-                        temp_image_path = temp_dir_path / f"page_{i}.jpg"
-                        im.save(temp_image_path, quality=95, optimize=True)
-                    else:
-                        # If no detections, save original
-                        temp_image_path = temp_dir_path / f"page_{i}.jpg"
-                        image.save(temp_image_path, quality=95)
-
-                    processed_image_paths.append(temp_image_path)
-
-                # Create unique folder for this PDF
-                pdf_output_dir = output_dir / pdf_path.stem
-                pdf_output_dir.mkdir(exist_ok=True)
-
-                # Find next available increment number
-                existing_pdfs = list(
-                    pdf_output_dir.glob(f"{pdf_path.stem}-*.pdf"))
-                if not existing_pdfs:
-                    increment = 1
-                else:
-                    numbers = [int(p.stem.split('-')[-1])
-                               for p in existing_pdfs]
-                    increment = max(numbers) + 1
-
-                # Compile to PDF with incremental naming
-                output_pdf_path = pdf_output_dir / \
-                    f"{pdf_path.stem}-{increment}.pdf"
-                self.compile_to_pdf(processed_image_paths, output_pdf_path)
-
-                return output_pdf_path
+            # Process results
+            for result, (_, params) in zip(batch_results, preprocessed):
+                if result:
+                    result['preprocessing_params'] = params
+                results.append(result)
 
         except Exception as e:
-            print(f"Error processing PDF: {e}")
-            raise
+            print(f"Error in batch processing: {e}")
+            results.extend([{} for _ in range(len(images))])
 
+        end_time = perf_counter()
+        print(f"Batch processed in {(end_time - start_time) * 1000:.2f}ms")
+        
+        return results
 
-def process_single_pdf(model_path: str, pdf_file: Path, output_dir: Path) -> Path:
-    """Process a single PDF file"""
+def process_single_image(model_path: str, image_file: Path, output_dir: Path) -> Path:
+    """Process a single image file"""
     visualizer = YOLOVisualizer(model_path)
     visualizer.inferencer = OptimizedYOLOInference(model_path)
-    return visualizer.process_pdf(pdf_file, output_dir)
+    
+    output_path = output_dir / f"{image_file.stem}_pred{image_file.suffix}"
+    success = visualizer.process_image(str(image_file), str(output_path))
+    
+    return output_path if success else None
 
 
 def main():
-    MODEL_PATH = os.getenv('YOLO_WEIGHTS_PATH',
-                           "yolo/runs/detect/best/best.pt")
-    PDF_DIR = "pdfs"
-    OUTPUT_DIR = Path(
-        f"predictions/yolo/{datetime.now().strftime('%m-%d-%H:%M')}")
+    MODEL_PATH = os.getenv('YOLO_WEIGHTS_PATH', "models/best.pt")
+    IMAGE_DIR = Path("data/images")
+    OUTPUT_DIR = Path("data/predictions")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    pdf_dir = Path(PDF_DIR)
-    if not pdf_dir.exists():
-        pdf_dir.mkdir(parents=True, exist_ok=True)
-
-    pdfs = list(pdf_dir.glob("**/*.pdf"))
-    if not pdfs:
-        print(f"\nNo PDFs found in {pdf_dir} or its subdirectories")
+    # Find all PNG images
+    images = list(IMAGE_DIR.glob("**/*.png"))
+    if not images:
+        print(f"\nNo PNG images found in {IMAGE_DIR}")
         return
 
-    print(f"\nFound {len(pdfs)} PDF files:")
-    for pdf in pdfs:
-        print(f"  - {pdf.relative_to(pdf_dir)}")
+    print(f"\nFound {len(images)} images:")
+    for img in images:
+        print(f"  - {img.relative_to(IMAGE_DIR)}")
 
-    # More aggressive but still safe
-    num_workers = min(6, max(4, os.cpu_count() - 2))
-    print(f"\nProcessing PDFs using {num_workers} parallel workers")
+    # Process each image
+    for image_file in images:
+        try:
+            output_path = process_single_image(MODEL_PATH, image_file, OUTPUT_DIR)
+            if output_path:
+                print(f"Processed {image_file.name} -> {output_path}")
+            else:
+                print(f"Failed to process {image_file.name}")
+        except Exception as e:
+            print(f"Error processing {image_file.name}: {e}")
 
-    batch_size = 6
-    for i in range(0, len(pdfs), batch_size):
-        batch_pdfs = pdfs[i:i + batch_size]
-        print(
-            f"\nProcessing batch {i//batch_size + 1} of {(len(pdfs) + batch_size - 1)//batch_size}")
-
-        with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            futures = []
-            for pdf_file in batch_pdfs:
-                future = executor.submit(
-                    process_single_pdf,
-                    MODEL_PATH,  # Changed order - model path first
-                    pdf_file,    # PDF file second
-                    OUTPUT_DIR   # Output dir third
-                )
-                futures.append((pdf_file, future))
-
-            # Process results as they complete
-            for pdf_file, future in futures:
-                try:
-                    output_path = future.result()
-                    print(
-                        f"Completed processing {pdf_file.name} -> {output_path}")
-                except Exception as e:
-                    print(f"Error processing {pdf_file.name}: {e}")
-
-        # Memory management between batches
-        gc.collect()
-        if hasattr(torch.mps, 'empty_cache'):
+        # Memory management
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        elif hasattr(torch.mps, 'empty_cache'):
             torch.mps.empty_cache()
 
 

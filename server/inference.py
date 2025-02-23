@@ -31,7 +31,7 @@ class YOLOInference:
         self.model.to(self.device)
 
         # Detection parameters
-        self.conf_threshold = 0.35
+        self.conf_threshold = 0.1
         self.iou_threshold = 0.45
 
         # Enable TensorRT optimization if available
@@ -86,9 +86,9 @@ class YOLOInference:
         return square_image, (scale, x_offset, y_offset)
 
     def get_annotations(self, image) -> Dict[str, Any]:
-        """Run inference and return annotations without drawing"""
+        """Run inference and return annotations including segmentation masks"""
         processed_img, preprocessing_params = self.preprocess_image(image)
-
+        
         results = self.model.predict(
             source=processed_img,
             conf=self.conf_threshold,
@@ -96,16 +96,23 @@ class YOLOInference:
             agnostic_nms=True,
             max_det=50,
             save=False,
-            imgsz=(1024, 1024)
+            imgsz=(1024, 1024),
+            retina_masks=True  # Enable high-quality masks
         )
 
         if results[0].boxes is not None and len(results[0].boxes) > 0:
-            return {
-                'boxes': results[0].boxes.xyxy,
-                'classes': results[0].boxes.cls,
-                'confidence': results[0].boxes.conf,
+            annotations = {
+                'boxes': results[0].boxes.xyxy.cpu().numpy(),
+                'classes': results[0].boxes.cls.cpu().numpy(),
+                'confidence': results[0].boxes.conf.cpu().numpy(),
                 'preprocessing_params': preprocessing_params
             }
+            
+            # Add segmentation masks if available
+            if hasattr(results[0], 'masks') and results[0].masks is not None:
+                annotations['masks'] = results[0].masks.data.cpu().numpy()
+                
+            return annotations
         return {}
 
     def process_pdf(self, pdf_path: Path) -> List[Dict[str, Any]]:
@@ -296,33 +303,16 @@ class OptimizedYOLOInference(YOLOInference):
             if self.device == 'mps':
                 batch_size = min(batch_size, 2)
 
-            # Parallel preprocessing using ThreadPoolExecutor
-            with ThreadPoolExecutor(max_workers=min(batch_size, 4)) as executor:
-                preprocess_fn = partial(self.preprocess_image)
-                preprocessed = list(executor.map(preprocess_fn, images))
-
             # Prepare tensors
             batch_tensors = []
-            for img, _ in preprocessed:
+            for img in images:
                 if not isinstance(img, np.ndarray):
                     img = np.array(img)
-
-                # Ensure correct shape and type
-                if len(img.shape) == 2:
-                    img = np.stack([img] * 3, axis=-1)
-                elif len(img.shape) == 3 and img.shape[2] == 1:
-                    img = np.repeat(img, 3, axis=2)
-
-                # Ensure contiguous array and convert to float32
-                img = np.ascontiguousarray(img)
                 
-                # Convert to tensor
-                tensor = torch.from_numpy(img).to(self.device, non_blocking=True)
-                
-                # Normalize and prepare tensor
-                tensor = tensor.float().div(255.0)  # Normalize to 0-1 range
-                tensor = tensor.permute(2, 0, 1).unsqueeze(0)  # HWC to NCHW
-                
+                # Convert to tensor and normalize
+                tensor = torch.from_numpy(img).to(self.device)
+                tensor = tensor.float() / 255.0
+                tensor = tensor.permute(2, 0, 1).unsqueeze(0)
                 batch_tensors.append(tensor)
 
             # Process in smaller sub-batches for MPS
@@ -341,7 +331,8 @@ class OptimizedYOLOInference(YOLOInference):
                             max_det=50,
                             save=False,
                             imgsz=(1024, 1024),
-                            verbose=False
+                            verbose=False,
+                            retina_masks=True  # Enable high-quality masks
                         )
                     sub_batch_results.extend(predictions)
                 predictions = sub_batch_results
@@ -357,37 +348,38 @@ class OptimizedYOLOInference(YOLOInference):
                         max_det=50,
                         save=False,
                         imgsz=(1024, 1024),
-                        verbose=False
+                        verbose=False,
+                        retina_masks=True  # Enable high-quality masks
                     )
-                    
+
             # Process results
-            for pred, (_, preprocess_params) in zip(predictions, preprocessed):
+            for pred in predictions:
                 if pred.boxes is not None and len(pred.boxes) > 0:
                     with torch.inference_mode():
                         result = {
                             'boxes': pred.boxes.xyxy.cpu().numpy(),
                             'classes': pred.boxes.cls.cpu().numpy(),
                             'confidence': pred.boxes.conf.cpu().numpy(),
-                            'preprocessing_params': preprocess_params
                         }
+                        
+                        # Add masks if available
+                        if hasattr(pred, 'masks') and pred.masks is not None:
+                            result['masks'] = pred.masks.data.cpu().numpy()
                 else:
                     result = {}
                 results.append(result)
-                
-            # print(results)
-
-            # Clear MPS cache
-            if self.device == 'mps':
-                torch.mps.empty_cache()
 
         except Exception as e:
             print(f"Error in batch processing: {e}")
+            import traceback
+            print(traceback.format_exc())
             results.extend([{} for _ in range(len(images))])
 
         end_time = perf_counter()
         print(f"Batch processed in {(end_time - start_time) * 1000:.2f}ms")
         
         return results
+
 
     def get_annotations(self, image) -> Dict[str, Any]:
         """Single image inference - now just processes a batch of size 1"""

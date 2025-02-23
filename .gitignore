@@ -1,6 +1,4 @@
 .DS_Store
-server/__pycache__/inference.cpython-310.pyc
-server/__pycache__/inference.cpython-311.pyc
-server/__pycache__/server.cpython-310.pyc
-server/__pycache__/server.cpython-311.pyc
+server/__pycache__/
 server/models
+server/data
