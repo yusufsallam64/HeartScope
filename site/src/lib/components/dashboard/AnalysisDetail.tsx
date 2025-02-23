@@ -4,22 +4,30 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Maximize2, X, Calendar, User, FileText, Pill } from 'lucide-react';
 import { FrontendAnalysis as Analysis } from '@/lib/db/types';
+import ImageAnnotation from './ImageAnnotation';
 
 interface AnalysisDetailProps {
   analysis: Analysis;
-  onDelete: () => void;
+  onDelete?: () => void;
+}
+
+type ImageFormat = 'png' | 'jpeg' | 'svg';
+
+interface Base64ImageData {
+  format: ImageFormat;
+  data: string;
 }
 
 const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
 
   if (!analysis) {
     return <div>Analysis not found</div>;
   }
 
-  const getImageSrc = (base64Data: string) => {
+  const getImageSrc = (base64Data: string): string => {
     if (base64Data.startsWith('data:')) {
       return base64Data;
     }
@@ -37,7 +45,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
     return `data:image/jpeg;base64,${base64Data}`;
   };
 
-  const handleImageClick = (imageData: string) => {
+  const handleImageClick = (imageData: string): void => {
     setSelectedImage(getImageSrc(imageData));
     setIsImageModalOpen(true);
   };
@@ -63,7 +71,6 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
                 <span className="text-sm text-primary-600">Age: </span>
                 <span className="font-medium">{analysis.age}</span>
               </div>
-              {/* Add PDF viewer button */}
               <Button
                 onClick={() => setIsPdfModalOpen(true)}
                 className="mt-4 flex items-center gap-2"
@@ -133,7 +140,6 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
         </Card>
       )}
 
-
       {analysis.analyzedImages && analysis.analyzedImages.length > 0 && (
         <Card>
           <CardHeader>
@@ -164,30 +170,14 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
         </Card>
       )}
 
-
       {/* Image Modal */}
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <DialogContent className="max-w-4xl w-full p-0">
-          {selectedImage && (
-            <div className="relative">
-              <img
-                src={selectedImage}
-                alt="Medical image"
-                className="w-full h-auto max-h-[80vh] object-contain bg-white"
-              />
-              <div className="absolute top-2 right-2">
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="rounded-full"
-                  onClick={() => setIsImageModalOpen(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
+        {selectedImage && (
+          <ImageAnnotation 
+            imageUrl={selectedImage} 
+            onClose={() => setIsImageModalOpen(false)} 
+          />
+        )}
       </Dialog>
 
       {/* PDF Modal */}
@@ -205,7 +195,7 @@ const AnalysisDetail: React.FC<AnalysisDetailProps> = ({ analysis }) => {
               </Button>
             </div>
             <iframe
-              src={`data/6795027263ccf2a123836c6a.pdf`}
+              src={`data/${analysis.id}.pdf`}
               className="w-full rounded-lg"
               style={{ height: 'calc(90vh - 2rem)' }}
               title="Medical Records"
