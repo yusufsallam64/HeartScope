@@ -19,12 +19,14 @@ export interface Analysis {
   userId: ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  openAIResults: any;
 }
 
 export class AnalysisService {
   static async createAnalysis(
     patientInfo: PatientInfo,
     images: string[],
+    openAIResults: any,
     userId: ObjectId
   ): Promise<ObjectId> {
     const analyses = await getCollection<Analysis>('analyses');
@@ -35,7 +37,8 @@ export class AnalysisService {
       analyzedImages: [],
       userId,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      openAIResults: openAIResults || {}
     };
 
     const result = await analyses.insertOne(analysis as Analysis);

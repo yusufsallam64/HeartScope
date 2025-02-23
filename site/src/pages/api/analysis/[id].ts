@@ -29,6 +29,8 @@ export default async function handler(
     // Fetch all analyses for the user
     const analyses = await AnalysisService.getAnalysisByUser(user._id);
 
+    console.log('Analyses:', analyses);
+
     // Format the analyses for the frontend
     const formattedAnalyses = analyses.map(analysis => ({
       id: analysis._id.toHexString(),
@@ -39,11 +41,9 @@ export default async function handler(
       currentMedications: analysis.patientInfo.currentMedications,
       symptoms: analysis.patientInfo.symptoms,
       images: analysis.images,
+      openAIResults: analysis.openAIResults,
       analyzedImages: analysis.patientInfo.analyzedImages || []
-  }));
-
-
-    // console.log('Fetched analyses:', formattedAnalyses);
+    }));
 
     return res.status(200).json(formattedAnalyses);
   } catch (error) {

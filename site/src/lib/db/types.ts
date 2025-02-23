@@ -11,13 +11,27 @@ export interface User {
 }
 
 export interface FrontendAnalysis {
-    id: string;
-    patientName: string;
-    age: number;
-    date: string;
-    medicalHistory: string;
-    currentMedications: string;
-    symptoms: string;
-    images: string[];
-    analyzedImages: string[]; 
+  patientName: string;
+  age: number;
+  date: string;
+  symptoms: string;
+  medicalHistory: string;
+  currentMedications: string;
+  images: string[];
+  analyzedImages: string[];
+  openAIResults: {
+    risk_score: number;
+    risk_category: "Low" | "Moderate" | "High" | "Critical";
+    diagnosis_confidence: number;
+    blockage_validation: {
+      location: string;
+      severity: number;
+      confidence: number;
+    };
+    risk_factors: Array<{
+      factor: string;
+      impact: number;
+    }>;
+    recommendations: string[];
+  };
 }

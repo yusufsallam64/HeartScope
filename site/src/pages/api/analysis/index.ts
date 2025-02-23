@@ -213,6 +213,8 @@ export default async function handler(
       analyzedImages
     }, fastAPIResults.results);
 
+    console.log("OpenAI Results:", openAIResults);
+
     // Prepare patient info
     const patientInfo = {
       name,
@@ -229,7 +231,8 @@ export default async function handler(
     const analysisId = await AnalysisService.createAnalysis(
       patientInfo,
       images,
-      new ObjectId(session.user.id)
+      openAIResults,
+      new ObjectId(session.user.id),
     );
 
     // Return success response with all data
