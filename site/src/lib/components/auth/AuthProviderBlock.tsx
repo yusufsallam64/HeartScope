@@ -12,9 +12,7 @@ interface OAuthLoginBlockProps {
 const OAuthLoginBlock: FC<OAuthLoginBlockProps> = ({ provider, providerName, iconLink, callbackUrl }) => (
     <button
         onClick={() => signIn(provider.id, { callbackUrl })}
-        className="w-full h-14 flex items-center px-6 bg-primary-900/60 hover:bg-primary-900/80 
-                   border-2 border-accent-400/20 hover:border-accent-400/40
-                   rounded-xl transition-all duration-300 group relative overflow-hidden"
+        className="flex items-center gap-2 px-8 py-4 bg-accent-500 text-white rounded-xl hover:bg-accent-600 transition-all duration-300 shadow-lg hover:shadow-xl group relative overflow-hidden m-auto"
     >
         <div className="absolute inset-0 bg-accent-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
