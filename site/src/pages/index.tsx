@@ -50,17 +50,17 @@ export default function Splash() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-6 animate-fade-in">
-                <Shield className="w-5 h-5 text-accent-500" />
+                <Brain className="w-5 h-5 text-accent-500" />
                 <span className="text-sm font-medium bg-accent-500/10 text-accent-600 px-3 py-1 rounded-full">
-                  HIPAA Compliant
+                  AI-Powered Insights
                 </span>
               </div>
               <h1 className="text-5xl lg:text-6xl font-bold text-primary-900 mb-6 animate-slide-up">
-                AI-Powered Cardiac
-                <span className="text-accent-500"> Analysis</span>
+                Comprehensive Cardiac
+                <span className="text-accent-500"> Intelligence</span>
               </h1>
               <p className="text-xl text-primary-600 mb-8 animate-slide-up-delay">
-                Advanced cardiothoracic imaging analysis that helps doctors identify arterial blockages with unprecedented accuracy.
+                Advanced AI that combines imaging analysis with deep medical history understanding to provide holistic cardiac risk assessment and personalized care recommendations.
               </p>
               <div className="flex gap-4 animate-slide-up-delay-2">
                 <button className="flex items-center gap-2 px-8 py-4 bg-accent-500 text-white rounded-xl hover:bg-accent-600 transition-all duration-300 shadow-lg hover:shadow-xl"
@@ -101,23 +101,18 @@ export default function Splash() {
         </div>
       </div>
 
-      {/* Stats Section */}
+      {/* Midpage CTA Section */}
       <div className="bg-primary-900 py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-12 text-center">
-            <div className="animate-fade-in">
-              <div className="text-4xl font-bold text-white mb-2">99.8%</div>
-              <div className="text-primary-200">Accuracy Rate</div>
-            </div>
-            <div className="animate-fade-in-delay">
-              <div className="text-4xl font-bold text-white mb-2">50,000+</div>
-              <div className="text-primary-200">Analyses Completed</div>
-            </div>
-            <div className="animate-fade-in-delay-2">
-              <div className="text-4xl font-bold text-white mb-2">2,000+</div>
-              <div className="text-primary-200">Healthcare Providers</div>
-            </div>
-          </div>
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Experience the Power of Combined AI Analysis
+          </h2>
+          <p className="text-xl text-primary-200 mb-8 max-w-3xl mx-auto">
+            Our dual AI system analyzes both medical imaging and patient history to provide comprehensive cardiac risk assessments and personalized care recommendations.
+          </p>
+          <button className="px-8 py-4 bg-accent-500 text-white rounded-xl hover:bg-accent-600 transition-all duration-300 shadow-lg hover:shadow-xl">
+            Book a Demo
+          </button>
         </div>
       </div>
 
@@ -146,9 +141,9 @@ export default function Splash() {
                 description: "Advanced machine learning algorithms trained on extensive cardiac imaging datasets for accurate blockage detection."
               },
               {
-                icon: <Shield className="w-8 h-8" />,
-                title: "HIPAA Compliant",
-                description: "Enterprise-grade security ensuring all patient data is protected according to healthcare standards."
+                icon: <Brain className="w-8 h-8" />,
+                title: "Medical History Analysis",
+                description: "Advanced LLM processing of patient records to identify risk factors and create personalized care recommendations."
               },
               {
                 icon: <Heart className="w-8 h-8" />,
@@ -162,8 +157,8 @@ export default function Splash() {
               },
               {
                 icon: <Activity className="w-8 h-8" />,
-                title: "Integration Ready",
-                description: "Seamlessly integrates with your existing healthcare systems and workflows."
+                title: "Risk Assessment",
+                description: "AI-driven analysis of multiple factors to provide holistic cardiac health risk scoring and recommendations."
               }
             ].map((feature, index) => (
               <div 
