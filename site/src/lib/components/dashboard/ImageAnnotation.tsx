@@ -1,190 +1,308 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Pencil, Circle, Square, Undo, Download, X, MousePointer } from 'lucide-react';
+import { Pencil, Circle, Square, Download, X, MousePointer, Eraser } from 'lucide-react';
 
 interface ImageAnnotationProps {
   imageUrl: string;
   onClose: () => void;
 }
 
-type Tool = 'pointer' | 'pen' | 'circle' | 'square';
+type Tool = 'pointer' | 'pen' | 'circle' | 'square' | 'eraser';
 
-const ImageAnnotation: React.FC<ImageAnnotationProps> = ({ imageUrl, onClose }) => {
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Shape {
+  id: string;
+  type: 'circle' | 'square' | 'pen';
+  points: Point[];
+  color: string;
+  lineWidth: number;
+  isSelected?: boolean;
+}
+
+const isShapeComplete = (shape: Shape): boolean => {
+  if (shape.type === 'pen') {
+    return shape.points.length >= 2;
+  }
+  return shape.points.length === 2;
+};
+
+const ImageAnnotation = forwardRef<HTMLDivElement, ImageAnnotationProps>(({ imageUrl, onClose }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState('#FF0000');
   const [lineWidth, setLineWidth] = useState(2);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [undoStack, setUndoStack] = useState<ImageData[]>([]);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [shapes, setShapes] = useState<Shape[]>([]);
+  const [currentShape, setCurrentShape] = useState<Shape | null>(null);
+  const [selectedShape, setSelectedShape] = useState<Shape | null>(null);
+  const [dragStartPos, setDragStartPos] = useState<Point | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const baseImageRef = useRef<ImageData | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isErasing = useRef(false);
 
-  const logDebug = (message: string, data?: any) => {
-    console.log(`[ImageAnnotation Debug] ${message}`, data || '');
-  };
-
-  // Initialize canvas after the Dialog is fully mounted
   useEffect(() => {
-    // Small delay to ensure Dialog is mounted
-    const timer = setTimeout(() => {
-      initializeCanvas();
-    }, 100);
-
+    const timer = setTimeout(initializeCanvas, 100);
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedShape) {
+          deleteSelectedShape();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedShape, shapes]);
+
   const initializeCanvas = () => {
-    logDebug('Initializing canvas');
     const canvas = canvasRef.current;
     const container = containerRef.current;
+    if (!canvas || !container) return;
 
-    if (!canvas || !container) {
-      logDebug('Canvas or container not available yet');
-      return;
-    }
-
-    // Initial canvas setup
     const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      logDebug('Failed to get canvas context');
-      return;
-    }
+    if (!ctx) return;
     contextRef.current = ctx;
 
-    // Load and set up image
     const img = new Image();
     img.crossOrigin = 'anonymous';
     
     img.onload = () => {
-      logDebug('Image loaded successfully', {
-        width: img.width,
-        height: img.height
-      });
-
-      // Get container dimensions (accounting for padding)
       const containerWidth = container.clientWidth - 32;
       const containerHeight = container.clientHeight - 32;
-
-      // Calculate scale to fit image while maintaining aspect ratio
       const scale = Math.min(
         containerWidth / img.width,
         containerHeight / img.height
       );
 
-      // Set canvas dimensions to match scaled image
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
 
-      logDebug('Canvas dimensions set', {
-        width: canvas.width,
-        height: canvas.height
-      });
-
-      // Draw image
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      // Save initial state
-      const initialState = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      setUndoStack([initialState]);
+      
+      baseImageRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
       setIsReady(true);
-    };
-
-    img.onerror = (error) => {
-      logDebug('Error loading image', error);
     };
 
     img.src = imageUrl;
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!contextRef.current || tool === 'pointer' || !isReady) return;
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
 
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvasRef.current!.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvasRef.current!.height / rect.height);
-
-    setIsDrawing(true);
-    setStartPos({ x, y });
-
-    const ctx = contextRef.current;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    logDebug('Drawing started', { x, y, tool });
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+    };
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !contextRef.current || !canvasRef.current || tool === 'pointer' || !isReady) {
+  const drawShape = (ctx: CanvasRenderingContext2D, shape: Shape) => {
+    if (!isShapeComplete(shape) && shape !== currentShape) return;
+
+    ctx.beginPath();
+    ctx.strokeStyle = shape.color;
+    ctx.lineWidth = shape.lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (shape.type === 'pen') {
+      const [first, ...rest] = shape.points;
+      ctx.moveTo(first.x, first.y);
+      rest.forEach(point => ctx.lineTo(point.x, point.y));
+    } else if (shape.type === 'circle' && shape.points.length === 2) {
+      const [center, end] = shape.points;
+      const radius = Math.sqrt(
+        Math.pow(end.x - center.x, 2) + Math.pow(end.y - center.y, 2)
+      );
+      ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
+    } else if (shape.type === 'square' && shape.points.length === 2) {
+      const [start, end] = shape.points;
+      ctx.rect(start.x, start.y, end.x - start.x, end.y - start.y);
+    }
+
+    ctx.stroke();
+
+    if (shape === selectedShape) {
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  };
+
+  const isPointInShape = (point: Point, shape: Shape): boolean => {
+    if (!isShapeComplete(shape)) return false;
+
+    if (shape.type === 'circle') {
+      const [center, end] = shape.points;
+      const radius = Math.sqrt(
+        Math.pow(end.x - center.x, 2) + Math.pow(end.y - center.y, 2)
+      );
+      const distance = Math.sqrt(
+        Math.pow(point.x - center.x, 2) + Math.pow(point.y - center.y, 2)
+      );
+      return distance <= radius + shape.lineWidth / 2;
+    } else if (shape.type === 'square') {
+      const [start, end] = shape.points;
+      const minX = Math.min(start.x, end.x) - shape.lineWidth / 2;
+      const maxX = Math.max(start.x, end.x) + shape.lineWidth / 2;
+      const minY = Math.min(start.y, end.y) - shape.lineWidth / 2;
+      const maxY = Math.max(start.y, end.y) + shape.lineWidth / 2;
+      return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY;
+    } else if (shape.type === 'pen') {
+      return shape.points.some((p, i) => {
+        if (i === 0) return false;
+        const prev = shape.points[i - 1];
+        const dx = p.x - prev.x;
+        const dy = p.y - prev.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        if (length === 0) return false;
+
+        const u = ((point.x - prev.x) * dx + (point.y - prev.y) * dy) / (length * length);
+        if (u < 0 || u > 1) return false;
+
+        const x = prev.x + u * dx;
+        const y = prev.y + u * dy;
+        const distance = Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2));
+        return distance <= shape.lineWidth / 2;
+      });
+    }
+    return false;
+  };
+
+  const findShapeAtPoint = (point: Point): Shape | null => {
+    return shapes.findLast(shape => isPointInShape(point, shape)) || null;
+  };
+
+  const eraseShapesAtPoint = (point: Point) => {
+    const erasedShapes = shapes.filter(shape => !isPointInShape(point, shape));
+    if (erasedShapes.length < shapes.length) {
+      setShapes(erasedShapes);
+      redrawCanvas();
+    }
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!contextRef.current || !isReady) return;
+
+    const coords = getCanvasCoordinates(e);
+
+    if (tool === 'pointer') {
+      const clickedShape = findShapeAtPoint(coords);
+      setSelectedShape(clickedShape);
+      if (clickedShape) {
+        setDragStartPos(coords);
+      }
       return;
     }
 
-    const ctx = contextRef.current;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvasRef.current.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvasRef.current.height / rect.height);
+    if (tool === 'eraser') {
+      isErasing.current = true;
+      eraseShapesAtPoint(coords);
+      return;
+    }
 
-    if (tool === 'pen') {
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    } else {
-      // Restore last state for shape preview
-      const lastState = undoStack[undoStack.length - 1];
-      if (lastState) {
-        ctx.putImageData(lastState, 0, 0);
-      }
+    setIsDrawing(true);
+    const newShape: Shape = {
+      id: Math.random().toString(36).substring(7),
+      type: tool === 'pointer' ? 'pen' : tool,
+      points: [coords],
+      color,
+      lineWidth
+    };
+    setCurrentShape(newShape);
+  };
 
-      ctx.beginPath();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = lineWidth;
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!contextRef.current || !isReady) return;
 
-      if (tool === 'circle') {
-        const radius = Math.sqrt(
-          Math.pow(x - startPos.x, 2) + Math.pow(y - startPos.y, 2)
-        );
-        ctx.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI);
-      } else if (tool === 'square') {
-        ctx.rect(
-          startPos.x,
-          startPos.y,
-          x - startPos.x,
-          y - startPos.y
-        );
-      }
+    const coords = getCanvasCoordinates(e);
+
+    if (tool === 'eraser' && isErasing.current) {
+      eraseShapesAtPoint(coords);
+      return;
+    }
+
+    if (selectedShape && dragStartPos) {
+      const dx = coords.x - dragStartPos.x;
+      const dy = coords.y - dragStartPos.y;
       
-      ctx.stroke();
+      const newShapes = shapes.map(shape => 
+        shape.id === selectedShape.id ? {
+          ...shape,
+          points: shape.points.map(p => ({
+            x: p.x + dx,
+            y: p.y + dy
+          }))
+        } : shape
+      );
+      
+      setShapes(newShapes);
+      setDragStartPos(coords);
+      redrawCanvas();
+      return;
+    }
+
+    if (isDrawing && currentShape) {
+      if (currentShape.type === 'pen') {
+        setCurrentShape({
+          ...currentShape,
+          points: [...currentShape.points, coords]
+        });
+      } else {
+        setCurrentShape({
+          ...currentShape,
+          points: [currentShape.points[0], coords]
+        });
+      }
+      redrawCanvas();
     }
   };
 
   const stopDrawing = () => {
-    if (isDrawing && contextRef.current && canvasRef.current && isReady) {
-      const newState = contextRef.current.getImageData(
-        0, 0, 
-        canvasRef.current.width, 
-        canvasRef.current.height
-      );
-      setUndoStack(prev => [...prev, newState]);
-      logDebug('Drawing stopped, state saved');
+    isErasing.current = false;
+    setDragStartPos(null);
+
+    if (isDrawing && currentShape) {
+      setShapes([...shapes, currentShape]);
     }
+    
     setIsDrawing(false);
+    setCurrentShape(null);
+    redrawCanvas();
   };
 
-  const undo = () => {
-    if (!contextRef.current || !canvasRef.current || undoStack.length <= 1) return;
+  const redrawCanvas = () => {
+    if (!contextRef.current || !canvasRef.current || !baseImageRef.current) return;
     
-    const newStack = [...undoStack];
-    newStack.pop();
-    const previousState = newStack[newStack.length - 1];
+    const ctx = contextRef.current;
+    ctx.putImageData(baseImageRef.current, 0, 0);
     
-    contextRef.current.putImageData(previousState, 0, 0);
-    setUndoStack(newStack);
+    [...shapes, currentShape].filter(Boolean).forEach(shape => {
+      if (shape) drawShape(ctx, shape);
+    });
+  };
+
+  const deleteSelectedShape = () => {
+    if (!selectedShape) return;
+    const newShapes = shapes.filter(s => s.id !== selectedShape.id);
+    setShapes(newShapes);
+    setSelectedShape(null);
+    redrawCanvas();
   };
 
   const downloadImage = () => {
@@ -196,15 +314,16 @@ const ImageAnnotation: React.FC<ImageAnnotationProps> = ({ imageUrl, onClose }) 
   };
 
   const tools = [
-    { id: 'pointer' as const, icon: MousePointer, label: 'Pointer' },
+    { id: 'pointer' as const, icon: MousePointer, label: 'Select & Move' },
     { id: 'pen' as const, icon: Pencil, label: 'Pen' },
     { id: 'circle' as const, icon: Circle, label: 'Circle' },
     { id: 'square' as const, icon: Square, label: 'Square' },
+    { id: 'eraser' as const, icon: Eraser, label: 'Eraser' },
   ];
 
   return (
     <DialogContent className="max-w-6xl w-full p-0">
-      <div className="relative flex flex-col h-[90vh]">
+      <div className="relative flex flex-col h-[90vh]" ref={ref}>
         <DialogTitle className="sr-only">Image Annotation</DialogTitle>
         
         {/* Toolbar */}
@@ -216,7 +335,10 @@ const ImageAnnotation: React.FC<ImageAnnotationProps> = ({ imageUrl, onClose }) 
                 variant={tool === id ? "default" : "outline"}
                 size="icon"
                 className="w-8 h-8"
-                onClick={() => setTool(id)}
+                onClick={() => {
+                  setTool(id);
+                  setSelectedShape(null);
+                }}
                 title={label}
               >
                 <Icon className="w-4 h-4" />
@@ -255,24 +377,25 @@ const ImageAnnotation: React.FC<ImageAnnotationProps> = ({ imageUrl, onClose }) 
             variant="outline"
             size="icon"
             className="w-8 h-8"
-            onClick={undo}
-            title="Undo"
-            disabled={undoStack.length <= 1}
-          >
-            <Undo className="w-4 h-4" />
-            <span className="sr-only">Undo</span>
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="icon"
-            className="w-8 h-8"
             onClick={downloadImage}
             title="Download"
           >
             <Download className="w-4 h-4" />
             <span className="sr-only">Download Image</span>
           </Button>
+
+          {selectedShape && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="w-8 h-8"
+              onClick={deleteSelectedShape}
+              title="Delete selected shape (Delete)"
+            >
+              <X className="w-4 h-4" />
+              <span className="sr-only">Delete shape</span>
+            </Button>
+          )}
           
           <div className="ml-auto">
             <Button
@@ -309,6 +432,8 @@ const ImageAnnotation: React.FC<ImageAnnotationProps> = ({ imageUrl, onClose }) 
       </div>
     </DialogContent>
   );
-};
+});
+
+ImageAnnotation.displayName = 'ImageAnnotation';
 
 export default ImageAnnotation;
